@@ -27,6 +27,8 @@ type Props = {
   interactivo?: boolean;
   /** Etiquetas cortas (solo código y riesgo) para mapas pequeños. */
   compacto?: boolean;
+  /** Color y etiqueta por bloque para colorear el mapa según otra variable (mapa de calor). */
+  colores?: Record<string, { color: string; texto: string }>;
   /** Rutas de la APK dibujadas con la capa del adaptador sobre este mismo mapa. */
   recorridos?: { inicial: FeatureCollectionRecorridos; url: string; encuadrar?: boolean };
 };
@@ -40,7 +42,7 @@ function Encuadre({ bounds }: { bounds: [[number, number], [number, number]] }) 
   return null;
 }
 
-export function MapaLotes({ lotes, centro, zoom = 17, alto = 360, interactivo = true, compacto = false, recorridos }: Props) {
+export function MapaLotes({ lotes, centro, zoom = 17, alto = 360, interactivo = true, compacto = false, recorridos, colores }: Props) {
   const router = useRouter();
   const [punto, setPunto] = useState<PuntoSeleccionado | null>(null);
   const haySimulados = recorridos?.inicial.features.some((f) => f.properties.simulated === true) ?? false;
@@ -69,26 +71,27 @@ export function MapaLotes({ lotes, centro, zoom = 17, alto = 360, interactivo = 
         />
         {lotes.map((l) => {
           const nivel = nivelRiesgo(l.indiceRiesgo);
-          const color = COLOR_RIESGO[nivel];
+          const color = colores?.[l.id]?.color ?? COLOR_RIESGO[nivel];
+          const texto = colores?.[l.id]?.texto ?? String(l.indiceRiesgo);
           return (
             <Polygon
               key={l.id}
               positions={l.poligono}
-              pathOptions={{ color, weight: 2.5, fillColor: color, fillOpacity: 0.35 }}
-              eventHandlers={interactivo ? { click: () => router.push(`/lotes/${l.id}`) } : undefined}
+              pathOptions={{ color, weight: 2.5, fillColor: color, fillOpacity: colores ? 0.55 : 0.35 }}
+              eventHandlers={interactivo ? { click: () => router.push(`/bloques/${l.id}`) } : undefined}
             >
               <Tooltip direction="center" permanent className="!border-0 !bg-transparent !p-0 !shadow-none">
                 {compacto ? (
                   <span className="flex items-center gap-1 rounded bg-background/90 px-1.5 py-0.5 text-[11px] leading-tight text-foreground">
                     <span className="font-medium">{l.id}</span>
-                    <span style={{ color }} className="font-semibold tabular-nums">{l.indiceRiesgo}</span>
+                    <span className="font-semibold tabular-nums">{texto}</span>
                     {l.eventosActivos ? <span className="text-muted-foreground">· {l.eventosActivos}🐛</span> : null}
                   </span>
                 ) : (
                   <span className="flex flex-col items-center rounded bg-background/90 px-1.5 py-0.5 text-[11px] leading-tight text-foreground">
                     <span className="font-medium">{l.id} · {l.nombre}</span>
                     <span className="text-muted-foreground">
-                      {ETIQUETA_RIESGO[nivel]} {l.indiceRiesgo}
+                      {colores ? texto : `${ETIQUETA_RIESGO[nivel]} ${l.indiceRiesgo}`}
                       {l.eventosActivos ? ` · ${l.eventosActivos} brote${l.eventosActivos > 1 ? "s" : ""}` : ""}
                     </span>
                   </span>

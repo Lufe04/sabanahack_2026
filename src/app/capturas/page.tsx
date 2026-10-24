@@ -48,7 +48,7 @@ export default async function Capturas({ searchParams }: { searchParams: Promise
 
       <form method="get" className="mt-4 flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-3 text-sm">
         <label className="grid gap-1">
-          <span className="text-xs text-muted-foreground">Lote</span>
+          <span className="text-xs text-muted-foreground">Bloque</span>
           <select id="f-lote" name="lote" defaultValue={filtros.lote ?? ""} className="h-9 rounded-md border border-border bg-background px-2">
             <option value="">Todos</option>
             {lotes.map((l) => <option key={l.id} value={l.id}>{l.id} · {l.nombre}</option>)}
@@ -99,7 +99,7 @@ export default async function Capturas({ searchParams }: { searchParams: Promise
             <TableHeader>
               <TableRow>
                 <TableHead>Fecha</TableHead>
-                <TableHead>Lote y revisión</TableHead>
+                <TableHead>Bloque y revisión</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Puntuaciones</TableHead>
                 <TableHead>Foto</TableHead>
@@ -114,7 +114,7 @@ export default async function Capturas({ searchParams }: { searchParams: Promise
                     <div className="text-[11px] text-muted-foreground">{c.modelo ?? "modelo desconocido"}</div>
                   </TableCell>
                   <TableCell>
-                    {c.loteId ? <Link href={`/lotes/${c.loteId}`} className="hover:underline">{c.loteId}</Link> : <span className="text-muted-foreground">Sin lote</span>}
+                    {c.loteId ? <Link href={`/bloques/${c.loteId}`} className="hover:underline">{c.loteId}</Link> : <span className="text-muted-foreground">Sin bloque</span>}
                     {c.inspectionId ? (
                       <div className="text-[11px]"><Link href={`/recorridos/${c.inspectionId}`} className="text-muted-foreground hover:underline">{c.recorridoNombre ?? c.mision ?? c.inspectionId.slice(0, 8)}</Link></div>
                     ) : null}

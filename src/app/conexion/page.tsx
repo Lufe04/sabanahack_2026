@@ -20,7 +20,7 @@ const SIGNIFICADO: Record<number, string> = {
   409: "Ese UUID ya existe con otro contenido.",
   413: "El envío supera 3,5 MB.",
   415: "La app no envió JSON.",
-  422: "El lote no está en el catálogo. Importa los lotes de nuevo y usa L01 a L10.",
+  422: "El bloque no está en el catálogo. Importa los bloques de nuevo y usa L01 a L10.",
   500: "Error del servidor. La app reintenta sola.",
   503: "El receptor no tiene token configurado.",
 };

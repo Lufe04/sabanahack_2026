@@ -10,7 +10,7 @@ export function TablaEventos({ eventos, conLote = true, vacio = "Sin brotes regi
     <Table>
       <TableHeader>
         <TableRow>
-          {conLote ? <TableHead>Lote</TableHead> : null}
+          {conLote ? <TableHead>Bloque</TableHead> : null}
           <TableHead>Plaga</TableHead>
           <TableHead>Estado</TableHead>
           <TableHead>Severidad</TableHead>
@@ -26,7 +26,7 @@ export function TablaEventos({ eventos, conLote = true, vacio = "Sin brotes regi
           <TableRow key={e.id}>
             {conLote ? (
               <TableCell>
-                <Link href={`/lotes/${e.loteId}`} className="font-medium hover:underline">
+                <Link href={`/bloques/${e.loteId}`} className="font-medium hover:underline">
                   {e.loteId} · {e.loteNombre}
                 </Link>
               </TableCell>

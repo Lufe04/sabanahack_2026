@@ -44,13 +44,13 @@ Variables de `SEED_DIAS` y `SEED` controlan cuántos días genera el seed y la s
 ```
 src/
   app/                 Datos reales: /capturas, /recorridos (APK Cultivos a bordo)
-                       Simulación: / (hoy), /lotes, /brotes, /historial, /analitica, /sensores
+                       Simulación: / (hoy), /bloques, /bloques/[id] (plano), /brotes, /historial, /analitica, /sensores
   app/api/events/      Receptor de la APK: observaciones, fotos y recorridos (idempotente por UUID)
   app/api/recorridos/  Feed GeoJSON de rutas de la APK para otros servidores
   lib/cultivos/        Adaptador 0.2.2 de la APK (adaptador/) y su conexión con el dashboard
   app/api/ingesta/     POST lecturas de sensores
   app/api/cron/        Avanza el simulador un día (Vercel Cron)
-  db/schema.ts         Tablas: lotes, sensores, lecturas, cultivos_* (robot),
+  db/schema.ts         Tablas: lotes (bloques), sensores, lecturas, cultivos_* (robot),
                        eventos_enfermedad, cosechas, resumen_diario_lote
   lib/queries/         Consultas SQL del dashboard (ranking, heatmaps, correlaciones)
   lib/recomendaciones.ts Reglas agronómicas que convierten el estado en acciones del día
@@ -128,6 +128,17 @@ Notas:
 - Vercel llama a `/api/cron/simular-dia` todos los días a las 00:15 de Colombia con el `CRON_SECRET`. Si alguna ejecución falla, la siguiente simula hasta 7 días pendientes.
 - Para reiniciar los datos de la demo basta con volver a correr `npm run db:seed:prod`.
 - Cuando lleguen datos reales, se elimina el cron de `vercel.json` y los sensores escriben por `/api/ingesta` y el robot por `/api/events`.
+
+## Plano de cada bloque
+
+`/bloques/[id]` dibuja el bloque con sus camas, pasillos y plantas (`src/lib/bloque/plano.ts`, `src/components/bloque/plano-bloque.tsx`):
+
+- Marco de plantación: camas de 1,2 m, pasillos de 1,8 m (3 m entre centros) y plantas cada 0,75 m. Cada planta tiene un tag `BLOQUE-Ccama-Pposición`, por ejemplo `L08-C12-P049`, contando de sur a norte.
+- Capa **Sanidad**: afectación por planta (sana, leve, moderada, severa) a partir de los focos de los brotes abiertos del bloque. Los hongos se concentran en la parte baja cuando el drenaje es malo; los trips entran por los bordes y avanzan a lo largo de la cama.
+- Capas **Temperatura**, **Humedad del aire** y **Humedad del suelo**: interpoladas desde la posición de los sensores del bloque, con un microclima simulado.
+- Encima se ven los puntos reales del robot y la posición de los sensores. Zoom con rueda, doble clic o botones; los tags aparecen al acercarse.
+
+En la base y en la API el bloque conserva el nombre técnico `lote` (`lote_id`, `/api/lotes`, códigos L01 a L10), porque la app del robot ya usa esos identificadores. La interfaz los llama bloques; `/lotes` redirige a `/bloques`.
 
 ## Recomendaciones del día
 

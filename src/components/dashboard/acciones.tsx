@@ -37,7 +37,7 @@ export function ListaAcciones({ acciones, limite }: { acciones: Recomendacion[];
               <div className="flex flex-wrap items-center gap-2">
                 <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide", p.clase)}>{p.etiqueta}</span>
                 {a.loteId ? (
-                  <Link href={`/lotes/${a.loteId}`} className="text-sm font-medium hover:underline">{a.titulo}</Link>
+                  <Link href={`/bloques/${a.loteId}`} className="text-sm font-medium hover:underline">{a.titulo}</Link>
                 ) : (
                   <span className="text-sm font-medium">{a.titulo}</span>
                 )}

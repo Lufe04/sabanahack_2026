@@ -5,21 +5,44 @@ import { usePathname } from "next/navigation";
 import { Sun, Map, BarChart3, Radio, Leaf, Bug, History, Camera, Route, Wifi } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/** Campo: datos reales de la APK. Simulación: todo lo demás, que nunca se mezcla con lo real. */
-const campo = [
-  { href: "/capturas", etiqueta: "Capturas", Icono: Camera },
-  { href: "/recorridos", etiqueta: "Recorridos", Icono: Route },
-  { href: "/conexion", etiqueta: "Conexión", Icono: Wifi },
+/**
+ * Menú ordenado por cómo decide una agrónoma: primero el estado de la finca hoy,
+ * luego lo que ve el robot, después el análisis y al final los equipos.
+ * La finca es simulada y nunca se mezcla con los datos reales del robot.
+ */
+const grupos = [
+  {
+    titulo: "Finca · simulación",
+    enlaces: [
+      { href: "/", etiqueta: "Hoy", Icono: Sun },
+      { href: "/bloques", etiqueta: "Bloques", Icono: Map },
+      { href: "/brotes", etiqueta: "Brotes", Icono: Bug },
+    ],
+  },
+  {
+    titulo: "Robot · datos reales",
+    enlaces: [
+      { href: "/capturas", etiqueta: "Capturas", Icono: Camera },
+      { href: "/recorridos", etiqueta: "Recorridos", Icono: Route },
+    ],
+  },
+  {
+    titulo: "Análisis",
+    enlaces: [
+      { href: "/historial", etiqueta: "Pérdidas", Icono: History },
+      { href: "/analitica", etiqueta: "Patrones", Icono: BarChart3 },
+    ],
+  },
+  {
+    titulo: "Equipos",
+    enlaces: [
+      { href: "/sensores", etiqueta: "Sensores", Icono: Radio },
+      { href: "/conexion", etiqueta: "Conexión del robot", Icono: Wifi },
+    ],
+  },
 ];
-
-const enlaces = [
-  { href: "/", etiqueta: "Hoy", Icono: Sun },
-  { href: "/lotes", etiqueta: "Lotes", Icono: Map },
-  { href: "/brotes", etiqueta: "Brotes", Icono: Bug },
-  { href: "/historial", etiqueta: "Historial", Icono: History },
-  { href: "/analitica", etiqueta: "Analítica", Icono: BarChart3 },
-  { href: "/sensores", etiqueta: "Sensores", Icono: Radio },
-];
+const todos = grupos.flatMap((g) => g.enlaces);
+const esActivo = (ruta: string, href: string) => (href === "/" ? ruta === "/" : ruta.startsWith(href));
 
 function Enlace({ href, etiqueta, Icono, activo }: { href: string; etiqueta: string; Icono: typeof Sun; activo: boolean }) {
   return (
@@ -51,15 +74,17 @@ export function Nav({ finca }: { finca: string }) {
           </div>
         </div>
         <nav className="flex flex-col gap-0.5 px-2">
-          <div className="px-2.5 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Campo · datos reales</div>
-          {campo.map((e) => <Enlace key={e.href} {...e} activo={ruta.startsWith(e.href)} />)}
-          <div className="px-2.5 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Simulación</div>
-          {enlaces.map((e) => <Enlace key={e.href} {...e} activo={e.href === "/" ? ruta === "/" : ruta.startsWith(e.href)} />)}
+          {grupos.map((g, i) => (
+            <div key={g.titulo} className="contents">
+              <div className={cn("px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground", i ? "pt-4" : "pt-2")}>{g.titulo}</div>
+              {g.enlaces.map((e) => <Enlace key={e.href} {...e} activo={esActivo(ruta, e.href)} />)}
+            </div>
+          ))}
         </nav>
         <div className="mt-auto px-4 py-3 text-[11px] text-muted-foreground">MVP · la simulación nunca se mezcla con las capturas reales</div>
       </aside>
       <nav className="fixed inset-x-0 bottom-0 z-20 flex overflow-x-auto border-t border-border bg-background md:hidden">
-        {[...campo, ...enlaces].map(({ href, etiqueta, Icono }) => {
+        {todos.map(({ href, etiqueta, Icono }) => {
           const activo = href === "/" ? ruta === "/" : ruta.startsWith(href);
           return (
             <Link

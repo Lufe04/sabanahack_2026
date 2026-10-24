@@ -97,7 +97,7 @@ export function generarRecomendaciones(
         loteNombre: l.nombre,
         plaga: e.enfermedad,
         titulo: `${e.estado === "activo" ? "Tratar" : "Dar seguimiento a"} ${p.nombre} en ${l.nombre}`,
-        detalle: `Brote ${e.estado} desde el ${e.fechaInicio}, severidad ${e.severidadMax} de 5, ${e.areaAfectadaPct.toFixed(1)} % del lote. ${e.tratamiento ?? p.tratamiento}.`,
+        detalle: `Brote ${e.estado} desde el ${e.fechaInicio}, severidad ${e.severidadMax} de 5, ${e.areaAfectadaPct.toFixed(1)} % del bloque. ${e.tratamiento ?? p.tratamiento}.`,
       });
     }
 

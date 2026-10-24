@@ -4,22 +4,19 @@ import { Encabezado, Seccion } from "@/components/dashboard/encabezado";
 import { Kpi } from "@/components/dashboard/kpi";
 import { EnfermedadBadge } from "@/components/dashboard/badges";
 import { LineaTiempoBrotes } from "@/components/dashboard/linea-tiempo";
-import { SerieTiempo } from "@/components/charts/serie-tiempo";
 import { BarrasApiladas } from "@/components/charts/barras-apiladas";
-import { Heatmap } from "@/components/charts/heatmap";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getLotesEstado } from "@/lib/queries/lotes";
 import {
   getBrotesPeriodo,
   getLotesEnfermosPorDia,
-  getPerdidasLoteMes,
   getProduccionPorLote,
   getProduccionSemanal,
   PRECIO_COP_KG,
 } from "@/lib/queries/historial";
 import { ENFERMEDADES } from "@/db/schema";
 import { COLOR_ENFERMEDAD, NOMBRE_ENFERMEDAD } from "@/lib/viz/palette";
-import { fmtMes, fmtNum, fmtPct } from "@/lib/format";
+import { fmtNum, fmtPct } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -51,13 +48,12 @@ export default async function Historial({ searchParams }: { searchParams: Promis
   const dias = PERIODOS.some((p) => String(p.dias) === q.dias) ? Number(q.dias) : 60;
   const periodo = PERIODOS.find((p) => p.dias === dias)!;
 
-  const [lotes, brotes, enfermosDia, produccion, semanal, perdidasMes] = await Promise.all([
+  const [lotes, brotes, enfermosDia, produccion, semanal] = await Promise.all([
     getLotesEstado(),
     getBrotesPeriodo(dias),
     getLotesEnfermosPorDia(dias),
     getProduccionPorLote(dias),
     getProduccionSemanal(dias),
-    getPerdidasLoteMes(dias),
   ]);
 
   const hoy = enfermosDia[enfermosDia.length - 1]?.fecha ?? new Date().toISOString().slice(0, 10);
@@ -68,18 +64,13 @@ export default async function Historial({ searchParams }: { searchParams: Promis
   const pctPerdida = (100 * kgPerdidos) / Math.max(1, kgCosechados + kgPerdidos);
   const brotesTotal = produccion.reduce((a, p) => a + p.brotes, 0);
   const brotesPrev = produccion.reduce((a, p) => a + p.brotesPrev, 0);
-  const diasConEnfermos = enfermosDia.filter((d) => d.total > 0).length;
-  const maxEnfermos = Math.max(0, ...enfermosDia.map((d) => d.total));
   const peorLote = produccion[0];
-  const meses = [...new Set(perdidasMes.map((m) => m.mes))].sort();
-  const valoresMes = new Map(perdidasMes.map((m) => [`${m.loteId}|${m.mes}`, m.kg]));
-  const filasLotes = lotes.map((l) => ({ clave: l.id, etiqueta: `${l.id} ${l.nombre}` }));
 
   return (
     <>
       <Encabezado
         titulo="Historial y pérdidas"
-        descripcion="Qué ha pasado en la finca: cuánta fruta se perdió, qué lotes estuvieron enfermos y cuándo. Cada período se compara con el período anterior de igual duración."
+        descripcion="Qué ha pasado en la finca: cuánta fruta se perdió, qué bloques estuvieron enfermos y cuándo. Cada período se compara con el período anterior de igual duración."
         acciones={
           <div className="flex flex-wrap gap-1.5">
             {PERIODOS.map((p) => (
@@ -95,28 +86,17 @@ export default async function Historial({ searchParams }: { searchParams: Promis
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Kpi etiqueta="Fruta cosechada" valor={fmtNum(kgCosechados / 1000, 1)} unidad="t" detalle={`${periodo.etiqueta.toLowerCase()}, ${lotes.length} lotes`} />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Kpi etiqueta="Fruta perdida por plagas" valor={fmtNum(kgPerdidos)} unidad="kg" detalle={<Delta actual={kgPerdidos} previo={kgPerdidosPrev} unidad=" kg" />} />
-        <Kpi etiqueta="Pérdida" valor={fmtPct(pctPerdida, 1)} detalle={`≈ ${fmtCop(kgPerdidos * PRECIO_COP_KG)} a ${fmtNum(PRECIO_COP_KG)} $/kg`} tono={pctPerdida > 6 ? "malo" : "neutro"} />
+        <Kpi etiqueta="Pérdida sobre lo cosechado" valor={fmtPct(pctPerdida, 1)} detalle={`≈ ${fmtCop(kgPerdidos * PRECIO_COP_KG)} de ${fmtNum(kgCosechados / 1000, 1)} t cosechadas`} tono={pctPerdida > 6 ? "malo" : "neutro"} />
         <Kpi etiqueta="Brotes en el período" valor={brotesTotal} detalle={<Delta actual={brotesTotal} previo={brotesPrev} />} />
-        <Kpi etiqueta="Días con algún lote enfermo" valor={diasConEnfermos} detalle={`de ${enfermosDia.length} días · hasta ${maxEnfermos} lotes a la vez`} tono={diasConEnfermos / Math.max(1, enfermosDia.length) > 0.7 ? "malo" : "neutro"} />
       </div>
 
-      <Seccion titulo="Línea de tiempo de brotes por lote" descripcion={`Cada barra es un brote, desde que inició hasta que se cerró. ${periodo.etiqueta}.`} className="mt-4">
+      <Seccion titulo="Línea de tiempo de brotes por bloque" descripcion={`Cada barra es un brote, desde que inició hasta que se cerró. ${periodo.etiqueta}.`} className="mt-4">
         <LineaTiempoBrotes brotes={brotes} lotes={lotes} desde={desde} hasta={hoy} />
       </Seccion>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <Seccion titulo="Lotes enfermos cada día" descripcion="Cuántos lotes tenían un brote abierto, por plaga. Un lote con dos plagas cuenta en ambas.">
-          <SerieTiempo
-            datos={enfermosDia}
-            series={ENFERMEDADES.map((e) => ({ clave: e, nombre: NOMBRE_ENFERMEDAD[e], color: COLOR_ENFERMEDAD[e] }))}
-            tipo="area"
-            dominioY={[0, lotes.length]}
-            alto={240}
-          />
-        </Seccion>
+      <div className="mt-4">
         <Seccion titulo="Fruta perdida por semana" descripcion="Kilos descartados por semana, según la plaga responsable. Gris: descarte normal de cosecha.">
           <BarrasApiladas
             datos={semanal}
@@ -131,11 +111,11 @@ export default async function Historial({ searchParams }: { searchParams: Promis
         </Seccion>
       </div>
 
-      <Seccion titulo="Pérdidas por lote" descripcion={`Kilos perdidos, brotes y días con enfermedad en ${periodo.etiqueta.toLowerCase()}, comparados con el período anterior.`} className="mt-4">
+      <Seccion titulo="¿Dónde se perdió la fruta?" descripcion={`Kilos perdidos, brotes y días con enfermedad en ${periodo.etiqueta.toLowerCase()}, comparados con el período anterior.`} className="mt-4">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Lote</TableHead>
+              <TableHead>Bloque</TableHead>
               <TableHead className="text-right">Cosechado</TableHead>
               <TableHead className="text-right">Perdido</TableHead>
               <TableHead className="text-right">% pérdida</TableHead>
@@ -149,7 +129,7 @@ export default async function Historial({ searchParams }: { searchParams: Promis
           <TableBody>
             {produccion.map((p) => (
               <TableRow key={p.loteId}>
-                <TableCell><Link href={`/lotes/${p.loteId}`} className="font-medium hover:underline">{p.loteId} · {p.nombre}</Link></TableCell>
+                <TableCell><Link href={`/bloques/${p.loteId}`} className="font-medium hover:underline">{p.loteId} · {p.nombre}</Link></TableCell>
                 <TableCell className="text-right tabular-nums">{fmtNum(p.kgCosechados)} kg</TableCell>
                 <TableCell className="text-right tabular-nums">{fmtNum(p.kgDescartados)} kg</TableCell>
                 <TableCell className="text-right tabular-nums">{fmtPct(p.pctPerdida, 1)}</TableCell>
@@ -164,15 +144,12 @@ export default async function Historial({ searchParams }: { searchParams: Promis
         </Table>
         {peorLote ? (
           <p className="mt-3 text-xs text-muted-foreground">
-            <Link href={`/lotes/${peorLote.loteId}`} className="font-medium text-foreground underline">{peorLote.nombre}</Link> concentra el {fmtPct((100 * peorLote.kgDescartados) / Math.max(1, kgPerdidos), 0)} de la fruta perdida del período.
+            <Link href={`/bloques/${peorLote.loteId}`} className="font-medium text-foreground underline">{peorLote.nombre}</Link> concentra el {fmtPct((100 * peorLote.kgDescartados) / Math.max(1, kgPerdidos), 0)} de la fruta perdida del período.
             El valor usa un precio de referencia de {fmtNum(PRECIO_COP_KG)} pesos por kilo en finca; cámbialo en el código según el mercado.
           </p>
         ) : null}
       </Seccion>
 
-      <Seccion titulo="Fruta perdida por lote y mes" descripcion="Kilos descartados. Más oscuro, más pérdida." className="mt-4">
-        <Heatmap filas={filasLotes} columnas={meses.map((m) => ({ clave: m, etiqueta: fmtMes(m) }))} valores={valoresMes} unidad=" kg" />
-      </Seccion>
     </>
   );
 }

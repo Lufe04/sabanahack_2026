@@ -21,7 +21,7 @@ export default async function DetalleCaptura({ params }: { params: Promise<{ id:
   const filas: [string, React.ReactNode][] = [
     ["Capturada", fmtFecha(c.capturadoEn, "d 'de' MMMM yyyy, HH:mm:ss")],
     ["Recibida", fmtFecha(c.recibidoEn, "d MMM, HH:mm:ss")],
-    ["Lote", c.loteId ? <Link href={`/lotes/${c.loteId}`} className="underline">{c.loteId}</Link> : "Sin lote (captura antigua)"],
+    ["Bloque", c.loteId ? <Link href={`/bloques/${c.loteId}`} className="underline">{c.loteId}</Link> : "Sin bloque (captura antigua)"],
     ["Misión", c.mision ?? "—"],
     ["Revisión", c.inspectionId ? <Link href={`/recorridos/${c.inspectionId}`} className="underline">{c.recorridoNombre ?? c.inspectionId}</Link> : "—"],
     ["Punto del plan", c.waypointId ?? "—"],

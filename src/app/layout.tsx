@@ -9,7 +9,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   title: "Monitoreo de arándanos",
-  description: "Dashboard de lotes, sensores y enfermedades de cultivos de arándano",
+  description: "Dashboard de bloques, sensores y enfermedades de cultivos de arándano",
 };
 
 const scriptTema = `(function(){try{var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',d);}catch(e){}})();`;

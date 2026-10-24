@@ -43,7 +43,7 @@ export function LineaTiempoBrotes({ brotes, lotes, desde, hasta }: Props) {
           const filas = brotes.filter((b) => b.loteId === l.id);
           return (
             <div key={l.id} className="flex items-center gap-2">
-              <Link href={`/lotes/${l.id}`} className="w-26 shrink-0 truncate text-xs hover:underline">
+              <Link href={`/bloques/${l.id}`} className="w-26 shrink-0 truncate text-xs hover:underline">
                 <span className="font-medium">{l.id}</span> <span className="text-muted-foreground">{l.nombre}</span>
               </Link>
               <div className="relative h-6 flex-1 rounded bg-muted/50">
@@ -57,7 +57,7 @@ export function LineaTiempoBrotes({ brotes, lotes, desde, hasta }: Props) {
                   return (
                     <span
                       key={b.id}
-                      title={`${NOMBRE_ENFERMEDAD[b.enfermedad]} · ${fmtFecha(b.fechaInicio)} a ${b.fechaFin ? fmtFecha(b.fechaFin) : "hoy"} · severidad ${b.severidadMax}/5 · ${b.areaAfectadaPct.toFixed(1)} % del lote`}
+                      title={`${NOMBRE_ENFERMEDAD[b.enfermedad]} · ${fmtFecha(b.fechaInicio)} a ${b.fechaFin ? fmtFecha(b.fechaFin) : "hoy"} · severidad ${b.severidadMax}/5 · ${b.areaAfectadaPct.toFixed(1)} % del bloque`}
                       className="absolute inset-y-1 rounded-sm ring-2 ring-[var(--viz-surface)]"
                       style={{
                         left: `${izq}%`,

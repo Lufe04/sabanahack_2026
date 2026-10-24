@@ -69,7 +69,7 @@ export default async function Brotes({ searchParams }: { searchParams: Promise<B
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-xs text-muted-foreground">Lote</span>
+          <span className="mr-1 text-xs text-muted-foreground">Bloque</span>
           <Chip activo={!q.lote} href={enlace({ lote: undefined })}>Todos</Chip>
           {lotes.map((l) => (
             <Chip key={l.id} activo={q.lote === l.id} href={enlace({ lote: l.id })}>{l.id}</Chip>

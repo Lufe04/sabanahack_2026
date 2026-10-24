@@ -20,7 +20,7 @@ function TablaRecorridos({ filas }: { filas: RecorridoFila[] }) {
       <TableHeader>
         <TableRow>
           <TableHead>Revisión</TableHead>
-          <TableHead>Lote</TableHead>
+          <TableHead>Bloque</TableHead>
           <TableHead>Estado</TableHead>
           <TableHead>Progreso</TableHead>
           <TableHead className="text-right">Lecturas</TableHead>
@@ -39,7 +39,7 @@ function TablaRecorridos({ filas }: { filas: RecorridoFila[] }) {
                 {!r.conGeometria ? <span>sin posiciones para el mapa</span> : null}
               </div>
             </TableCell>
-            <TableCell><Link href={`/lotes/${r.loteId}`} className="hover:underline">{r.loteId}</Link></TableCell>
+            <TableCell><Link href={`/bloques/${r.loteId}`} className="hover:underline">{r.loteId}</Link></TableCell>
             <TableCell><FaseRecorrido fase={r.fase} /></TableCell>
             <TableCell><Progreso completados={r.completados} total={r.total} /></TableCell>
             <TableCell className="text-right tabular-nums">{r.lecturas}</TableCell>
@@ -69,7 +69,7 @@ export default async function Recorridos({ searchParams }: { searchParams: Promi
     <>
       <Encabezado
         titulo="Recorridos de inspección"
-        descripcion="Revisiones registradas por la app. Completo significa que se revisaron todos los puntos definidos, no toda la superficie del lote."
+        descripcion="Revisiones registradas por la app. Completo significa que se revisaron todos los puntos definidos, no toda la superficie del bloque."
         acciones={
           <div className="flex flex-wrap gap-1.5">
             {ORIGENES.map((o) => (

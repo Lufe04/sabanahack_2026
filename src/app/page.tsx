@@ -3,42 +3,51 @@ import { CloudRain, Thermometer, Droplets } from "lucide-react";
 import { Encabezado, Seccion } from "@/components/dashboard/encabezado";
 import { Kpi } from "@/components/dashboard/kpi";
 import { RiesgoBadge, AmenazaBadge, SueloBadge } from "@/components/dashboard/badges";
-import { MapaLotesLazy } from "@/components/dashboard/mapa-lotes-lazy";
 import { ListaAcciones } from "@/components/dashboard/acciones";
-import { SerieTiempo } from "@/components/charts/serie-tiempo";
+import { MapaFinca } from "@/components/dashboard/mapa-finca";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getEventos, getLotesEstado, getSerieDiariaFinca } from "@/lib/queries/lotes";
+import { getEventos, getLotesEstado } from "@/lib/queries/lotes";
 import { getSensoresEstado } from "@/lib/queries/sensores";
+import { getResumenCapturas } from "@/lib/queries/cultivos";
+import { getSanidadFinca } from "@/lib/bloque/datos";
 import { generarRecomendaciones, amenazaPrincipal, estadoSuelo } from "@/lib/recomendaciones";
-import { FINCA } from "@/lib/simulador/finca";
 import { geojsonRecorridos } from "@/lib/cultivos/servicio";
-import { fmtFecha, fmtNum } from "@/lib/format";
+import { FINCA } from "@/lib/simulador/finca";
+import { fmtFecha, fmtNum, fmtPct } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 export default async function Hoy() {
-  const [lotes, serie, abiertos, sensores, rutas] = await Promise.all([
-    getLotesEstado(),
-    getSerieDiariaFinca(60),
+  const lotes = await getLotesEstado();
+  const [abiertos, sensores, rutas, sanidad, robot] = await Promise.all([
     getEventos({ soloAbiertos: true }),
     getSensoresEstado(),
     geojsonRecorridos(null),
+    getSanidadFinca(lotes),
+    getResumenCapturas({}),
   ]);
   const acciones = generarRecomendaciones(lotes, abiertos, sensores);
   const urgentes = acciones.filter((a) => a.prioridad === "alta").length;
-  const enAlerta = lotes.filter((l) => l.indiceRiesgo >= 40 || l.eventosActivos > 0);
-  const sensoresCaidos = sensores.filter((s) => s.estado !== "ok").length;
+  const san = new Map(sanidad.map((s) => [s.loteId, s]));
+  const plantas = sanidad.reduce((a, s) => a + s.plantas, 0);
+  const afectadas = sanidad.reduce((a, s) => a + s.afectadas, 0);
+
+  // Prioridad: plantas afectadas, brotes abiertos y riesgo de brote
+  const prioridad = (id: string) => {
+    const l = lotes.find((x) => x.id === id)!;
+    return (san.get(id)?.pctAfectadas ?? 0) * 3 + l.eventosActivos * 10 + l.indiceRiesgo / 2;
+  };
+  const requierenAccion = lotes.filter((l) => l.indiceRiesgo >= 40 || l.eventosActivos > 0 || (san.get(l.id)?.pctAfectadas ?? 0) >= 5);
+  const ordenados = [...lotes].sort((a, b) => prioridad(b.id) - prioridad(a.id));
   const hoy = lotes[0];
   const lluvia = Math.max(...lotes.map((l) => l.lluviaMm ?? 0));
   const humedadProm = lotes.reduce((a, l) => a + (l.humedadAireProm ?? 0), 0) / Math.max(1, lotes.length);
-  const semanas = agruparPorSemana(serie);
-  const lotesOrdenados = [...lotes].sort((a, b) => b.indiceRiesgo - a.indiceRiesgo);
 
   return (
     <>
       <Encabezado
         titulo={`Hoy, ${fmtFecha(hoy?.fecha ?? new Date().toISOString(), "EEEE d 'de' MMMM")}`}
-        descripcion={`${FINCA.nombre} · ${FINCA.municipio} · ${lotes.length} lotes, ${fmtNum(lotes.reduce((a, l) => a + l.hectareas, 0), 1)} ha`}
+        descripcion={`${FINCA.nombre} · ${FINCA.municipio} · ${lotes.length} bloques, ${fmtNum(lotes.reduce((a, l) => a + l.hectareas, 0), 1)} ha`}
         acciones={
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-1"><Thermometer className="size-4" />{fmtNum(hoy?.tempMin, 0)}° a {fmtNum(hoy?.tempMax, 0)}°</span>
@@ -49,43 +58,73 @@ export default async function Hoy() {
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi etiqueta="Lotes en alerta" valor={enAlerta.length} detalle={enAlerta.length ? enAlerta.map((l) => l.nombre).join(", ") : "ningún lote en riesgo alto"} tono={enAlerta.length ? "malo" : "bueno"} />
-        <Kpi etiqueta="Brotes abiertos" valor={abiertos.length} detalle={`${abiertos.filter((e) => e.estado === "activo").length} activos, ${abiertos.filter((e) => e.estado === "controlado").length} en control`} />
-        <Kpi etiqueta="Acciones para hoy" valor={acciones.length} detalle={urgentes ? `${urgentes} urgentes` : "ninguna urgente"} tono={urgentes ? "malo" : "neutro"} />
-        <Kpi etiqueta="Sensores" valor={`${sensores.length - sensoresCaidos}/${sensores.length}`} detalle={sensoresCaidos ? `${sensoresCaidos} por revisar` : "todos reportando"} tono={sensoresCaidos ? "malo" : "bueno"} />
+        <Kpi
+          etiqueta="Bloques que requieren acción"
+          valor={requierenAccion.length}
+          detalle={requierenAccion.length ? requierenAccion.map((l) => l.id).join(", ") : "ningún bloque en alerta"}
+          tono={requierenAccion.length ? "malo" : "bueno"}
+        />
+        <Kpi etiqueta="Plantas afectadas" valor={fmtPct((100 * afectadas) / Math.max(1, plantas), 1)} detalle={`${afectadas.toLocaleString("es-CO")} de ${plantas.toLocaleString("es-CO")} plantas`} tono={afectadas ? "malo" : "bueno"} />
+        <Kpi etiqueta="Brotes abiertos" valor={abiertos.length} detalle={`${abiertos.filter((e) => e.estado === "activo").length} activos · ${urgentes} acciones urgentes`} tono={abiertos.length ? "malo" : "bueno"} />
+        <Kpi
+          etiqueta="Alertas del robot sin revisar"
+          valor={<Link href="/capturas?alerta=si" className="hover:underline">{robot.alertasPendientes}</Link>}
+          detalle={robot.ultima ? `última lectura ${fmtFecha(robot.ultima, "d MMM, HH:mm")}` : "el robot no ha enviado lecturas"}
+          tono={robot.alertasPendientes ? "malo" : "neutro"}
+        />
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-5">
-        <Seccion titulo="Qué hacer hoy" descripcion="Acciones derivadas del riesgo, los brotes abiertos, el suelo y el estado de los equipos." className="lg:col-span-3">
-          <ListaAcciones acciones={acciones} limite={8} />
+      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
+        <Seccion titulo="Mapa de la finca" descripcion="Elige qué ver: plantas afectadas, riesgo de brote, temperatura o humedad en cada bloque.">
+          <MapaFinca
+            bloques={lotes.map((l) => ({
+              id: l.id,
+              nombre: l.nombre,
+              poligono: l.poligono,
+              indiceRiesgo: l.indiceRiesgo,
+              eventosActivos: l.eventosActivos,
+              pctAfectadas: san.get(l.id)?.pctAfectadas ?? 0,
+              temperatura: san.get(l.id)?.temperatura ?? null,
+              humedadAire: san.get(l.id)?.humedadAire ?? null,
+              humedadSuelo: san.get(l.id)?.humedadSuelo ?? null,
+            }))}
+            centro={FINCA.centro}
+            recorridos={{ inicial: rutas, url: "/recorridos/geojson" }}
+          />
         </Seccion>
-        <Seccion titulo="Mapa de la finca" descripcion="Color y número según el riesgo de hoy; 🐛 marca brotes abiertos. Clic en un lote para ver el detalle." className="lg:col-span-2">
-          <MapaLotesLazy lotes={lotes} centro={FINCA.centro} alto={420} compacto recorridos={{ inicial: rutas, url: "/recorridos/geojson" }} />
+        <Seccion titulo="Qué hacer hoy" descripcion="Ordenado por urgencia.">
+          <ListaAcciones acciones={acciones} limite={6} />
         </Seccion>
       </div>
 
-      <Seccion titulo="Estado de los lotes" descripcion="Un vistazo por lote: riesgo, qué plaga amenaza, cómo está el suelo y si tiene brotes abiertos." className="mt-4">
+      <Seccion titulo="Bloques por prioridad" descripcion="Primero los que tienen más plantas afectadas, brotes abiertos o riesgo alto." className="mt-4">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Lote</TableHead>
-              <TableHead>Riesgo hoy</TableHead>
+              <TableHead>Bloque</TableHead>
+              <TableHead className="text-right">Plantas afectadas</TableHead>
               <TableHead>Amenaza principal</TableHead>
+              <TableHead>Riesgo hoy</TableHead>
               <TableHead>Suelo</TableHead>
               <TableHead className="text-right">Brotes abiertos</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {lotesOrdenados.map((l) => {
+            {ordenados.map((l) => {
               const amenaza = amenazaPrincipal(l);
+              const s = san.get(l.id);
               return (
                 <TableRow key={l.id}>
                   <TableCell>
-                    <Link href={`/lotes/${l.id}`} className="font-medium hover:underline">{l.id} · {l.nombre}</Link>
-                    <div className="text-xs text-muted-foreground">{l.variedad} · {fmtNum(l.hectareas, 1)} ha · drenaje {l.drenaje}</div>
+                    <Link href={`/bloques/${l.id}`} className="font-medium hover:underline">{l.id} · {l.nombre}</Link>
+                    <div className="text-xs text-muted-foreground">{l.variedad} · drenaje {l.drenaje}</div>
                   </TableCell>
-                  <TableCell><RiesgoBadge indice={l.indiceRiesgo} /></TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    <span className={s && s.pctAfectadas >= 5 ? "font-semibold text-[var(--status-critical)]" : undefined}>{fmtPct(s?.pctAfectadas ?? 0, 1)}</span>
+                    {s?.severas ? <div className="text-[11px] text-muted-foreground">{s.severas} severas</div> : null}
+                  </TableCell>
                   <TableCell>{amenaza ? <AmenazaBadge plaga={amenaza.plaga} riesgo={amenaza.riesgo} /> : "—"}</TableCell>
+                  <TableCell><RiesgoBadge indice={l.indiceRiesgo} /></TableCell>
                   <TableCell><SueloBadge estado={estadoSuelo(l.humedadSueloProm)} valor={l.humedadSueloProm} /></TableCell>
                   <TableCell className="text-right tabular-nums">{l.eventosActivos || <span className="text-muted-foreground">0</span>}</TableCell>
                 </TableRow>
@@ -94,35 +133,6 @@ export default async function Hoy() {
           </TableBody>
         </Table>
       </Seccion>
-
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <Seccion titulo="Riesgo de brote en la finca" descripcion="Promedio y lote más expuesto, últimos 60 días. Sobre 40 conviene inspeccionar.">
-          <SerieTiempo
-            datos={serie}
-            series={[
-              { clave: "riesgoProm", nombre: "Promedio", color: "var(--series-1)" },
-              { clave: "riesgoMax", nombre: "Lote más expuesto", color: "var(--series-2)", punteada: true },
-            ]}
-            dominioY={[0, 100]}
-            lineaRef={{ y: 40, etiqueta: "inspeccionar" }}
-          />
-        </Seccion>
-        <Seccion titulo="Brotes nuevos por semana" descripcion="Cuántos brotes empezaron cada semana en toda la finca.">
-          <SerieTiempo datos={semanas} series={[{ clave: "brotes", nombre: "Brotes", color: "var(--series-1)" }]} claveX="semana" tipo="barra" />
-        </Seccion>
-      </div>
     </>
   );
-}
-
-function agruparPorSemana(serie: { fecha: string; brotes: number }[]) {
-  const mapa = new Map<string, number>();
-  for (const p of serie) {
-    const d = new Date(p.fecha + "T00:00:00");
-    const lunes = new Date(d);
-    lunes.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-    const clave = lunes.toISOString().slice(0, 10);
-    mapa.set(clave, (mapa.get(clave) ?? 0) + p.brotes);
-  }
-  return [...mapa.entries()].map(([semana, brotes]) => ({ semana, brotes }));
 }

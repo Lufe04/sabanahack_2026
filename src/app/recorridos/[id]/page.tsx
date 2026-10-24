@@ -33,7 +33,7 @@ export default async function DetalleRecorrido({ params }: { params: Promise<{ i
     <>
       <Encabezado
         titulo={<span className="flex flex-wrap items-center gap-3">{r.nombre ?? "Revisión"}{r.simulado ? <DistintivoSimulado /> : null}</span>}
-        descripcion={`Lote ${r.loteId}${lote ? ` · ${lote.nombre}` : ""} · actualizada ${fmtFecha(r.actualizadoEn, "d MMM, HH:mm:ss")}`}
+        descripcion={`Bloque ${r.loteId}${lote ? ` · ${lote.nombre}` : ""} · actualizada ${fmtFecha(r.actualizadoEn, "d MMM, HH:mm:ss")}`}
         acciones={<Link href="/recorridos" className="text-sm text-muted-foreground underline">Todos los recorridos</Link>}
       />
 
@@ -50,7 +50,7 @@ export default async function DetalleRecorrido({ params }: { params: Promise<{ i
 
       {r.simulado ? (
         <p className="mt-3 max-w-3xl text-xs text-muted-foreground">
-          En esta demo el avance entre puntos lo marca un temporizador y las posiciones del mapa se generan dentro del contorno del lote. No son GPS medido ni plantas identificadas. Las puntuaciones y fotos sí son del cuadro que analizó la cámara.
+          En esta demo el avance entre puntos lo marca un temporizador y las posiciones del mapa se generan dentro del contorno del bloque. No son GPS medido ni plantas identificadas. Las puntuaciones y fotos sí son del cuadro que analizó la cámara.
         </p>
       ) : null}
 
