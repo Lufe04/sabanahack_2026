@@ -32,6 +32,8 @@ Scripts útiles:
 | `npm run db:studio` | Explorador visual de la base de datos |
 | `npm run db:timezone` | Fija la zona horaria de la base en America/Bogota (el seed ya lo hace) |
 | `npm run db:setup:prod` | Crea tablas y carga datos en la base de producción |
+| `npm run test:adaptador` | Pruebas del adaptador de la APK (PGlite, sin red) |
+| `npm run probar:apk` | Envía los JSON de Android a un servidor y revisa el contrato |
 | `npm run sim:calibrar` | Corre la simulación sin lecturas y muestra conteos de brotes |
 | `node scripts/capturas.mjs` | Captura las 7 vistas con Chrome y reporta errores de consola |
 
@@ -44,6 +46,8 @@ src/
   app/                 Datos reales: /capturas, /recorridos (APK Cultivos a bordo)
                        Simulación: / (hoy), /lotes, /brotes, /historial, /analitica, /sensores
   app/api/events/      Receptor de la APK: observaciones, fotos y recorridos (idempotente por UUID)
+  app/api/recorridos/  Feed GeoJSON de rutas de la APK para otros servidores
+  lib/cultivos/        Adaptador 0.2.2 de la APK (adaptador/) y su conexión con el dashboard
   app/api/ingesta/     POST lecturas y vuelos (para sensores y dron reales)
   app/api/cron/        Avanza el simulador un día (Vercel Cron)
   db/schema.ts         Tablas: lotes, sensores, lecturas, vuelos_dron, detecciones,

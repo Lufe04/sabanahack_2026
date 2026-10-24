@@ -1,7 +1,8 @@
 import {
+  bigint,
+  check,
   customType,
   uuid,
-  doublePrecision,
   pgTable,
   pgEnum,
   text,
@@ -16,7 +17,7 @@ import {
   index,
   primaryKey,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 // ---------- Enums ----------
 
@@ -231,10 +232,12 @@ export const estadoSimulador = pgTable("estado_simulador", {
 
 // ---------- Datos reales de la APK "Cultivos a bordo" ----------
 //
-// Estas tablas guardan observaciones reales del teléfono y nunca se mezclan con
-// la simulación. No tienen clave foránea a `lotes` a propósito: así un reseed de
-// la simulación (que trunca `lotes` en cascada) no borra evidencia real. El lote
-// se valida en el receptor contra el mismo catálogo que expone /api/lotes.
+// Mismas tablas y columnas que `001_cultivos.sql` del adaptador 0.2.2, para que su
+// código (src/lib/cultivos/adaptador) funcione sin cambios. Diferencias deliberadas:
+// - Sin clave foránea a un catálogo: un reseed de la simulación trunca `lotes` en
+//   cascada y no debe borrar evidencia real. El receptor valida el lote contra `lotes`,
+//   el mismo catálogo que expone /api/lotes (paso 4 del README del adaptador).
+// - `revision_humana` y `revisado_en`: decisión del agrónomo sobre cada captura.
 
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
   dataType: () => "bytea",
@@ -250,63 +253,42 @@ export type RevisionHumana = (typeof REVISIONES_HUMANAS)[number];
 export const cultivosRegistros = pgTable(
   "cultivos_registros",
   {
-    /** UUID generado por la APK. Es la clave de idempotencia. */
+    seq: bigint("seq", { mode: "number" }).generatedAlwaysAsIdentity().unique(),
     id: uuid("id").primaryKey(),
-    /** Orden de llegada, para paginar con cursor estable. */
-    seq: bigserial("seq", { mode: "number" }).notNull().unique(),
-    tipo: text("tipo").notNull(), // observation | route_snapshot | legacy
-    schemaVersion: integer("schema_version"),
+    tipo: text("tipo").notNull(),
+    loteId: text("lote_id"),
     capturadoEn: timestamp("capturado_en", { withTimezone: true }).notNull(),
     recibidoEn: timestamp("recibido_en", { withTimezone: true }).notNull().defaultNow(),
-    loteId: text("lote_id"),
-    inspectionId: uuid("inspection_id"),
-    planId: uuid("plan_id"),
-    waypointId: uuid("waypoint_id"),
-    modelo: text("modelo"),
-    puntuaciones: jsonb("puntuaciones").$type<Puntuaciones>(),
     alerta: boolean("alerta").notNull().default(false),
-    modoCaptura: text("modo_captura"), // periodic | automatic | manual | route_reference
-    lat: doublePrecision("lat"),
-    lng: doublePrecision("lng"),
-    precisionM: doublePrecision("precision_m"),
-    foto: bytea("foto"),
-    fotoMime: text("foto_mime"),
-    fotoNombre: text("foto_nombre"),
-    fotoBytes: integer("foto_bytes"),
-    /** Payload completo sin la foto, para no perder ningún campo de la APK. */
+    puntuaciones: jsonb("puntuaciones").$type<Puntuaciones>(),
     datos: jsonb("datos").notNull(),
-    /** SHA-256 del contenido canónico: distingue un reintento de un UUID reutilizado. */
-    huella: text("huella").notNull(),
+    foto: bytea("foto"),
+    dataHash: text("data_hash").notNull(),
     revisionHumana: text("revision_humana").notNull().default("pendiente"),
     revisadoEn: timestamp("revisado_en", { withTimezone: true }),
   },
   (t) => [
-    index("cultivos_registros_lote_idx").on(t.loteId, t.capturadoEn),
-    index("cultivos_registros_inspection_idx").on(t.inspectionId),
-    index("cultivos_registros_capturado_idx").on(t.capturadoEn),
+    check("cultivos_registros_tipo_check", sql`${t.tipo} IN ('observation','route_snapshot')`),
+    check("cultivos_registros_alerta_foto_check", sql`NOT ${t.alerta} OR ${t.foto} IS NOT NULL`),
+    index("cultivos_registros_lote_fecha").on(t.loteId, t.capturadoEn.desc()),
   ],
 );
 
-/** Última versión conocida de cada revisión (inspection). Nunca retrocede. */
+/** Última versión de cada revisión (inspection). Una revisión vieja no la reemplaza. */
 export const cultivosRecorridos = pgTable(
   "cultivos_recorridos",
   {
     inspectionId: uuid("inspection_id").primaryKey(),
-    planId: uuid("plan_id"),
-    loteId: text("lote_id"),
-    nombre: text("nombre"),
-    fase: text("fase"),
-    completados: integer("completados").notNull().default(0),
-    total: integer("total").notNull().default(0),
-    completa: boolean("completa").notNull().default(false),
-    revision: integer("revision").notNull().default(0),
-    actualizadoEn: timestamp("actualizado_en", { withTimezone: true }).notNull(),
-    puntos: jsonb("puntos").$type<unknown[]>().notNull(),
+    planId: uuid("plan_id").notNull(),
+    loteId: text("lote_id").notNull(),
+    revision: bigint("revision", { mode: "number" }).notNull(),
+    fase: text("fase").notNull(),
+    completados: integer("completados").notNull(),
+    total: integer("total").notNull(),
     datos: jsonb("datos").notNull(),
-    ultimoEventoId: uuid("ultimo_evento_id").notNull(),
+    actualizadoEn: timestamp("actualizado_en", { withTimezone: true }).notNull(),
     recibidoEn: timestamp("recibido_en", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("cultivos_recorridos_lote_idx").on(t.loteId), index("cultivos_recorridos_plan_idx").on(t.planId)],
 );
 
 export type CultivoRegistro = typeof cultivosRegistros.$inferSelect;

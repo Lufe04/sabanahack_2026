@@ -18,7 +18,9 @@
     "db:push:prod": "dotenv -e .env.production.local -- drizzle-kit push --force",
     "db:seed:prod": "dotenv -e .env.production.local -- tsx scripts/seed.ts",
     "db:setup:prod": "npm run db:push:prod && npm run db:seed:prod",
-    "deploy": "vercel deploy --prod"
+    "deploy": "vercel deploy --prod",
+    "test:adaptador": "node --test tests/adaptador/*.test.mjs",
+    "probar:apk": "node scripts/probar-apk.mjs"
   },
   "dependencies": {
     "@vercel/functions": "^3.10.3",
@@ -40,6 +42,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.11",
     "@tailwindcss/turbopack": "^4",
     "@types/leaflet": "^1.9.22",
     "@types/node": "^20",

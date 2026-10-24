@@ -1,16 +1,17 @@
-import { CheckCircle2, CirclePause, BatteryCharging, Footprints, Circle } from "lucide-react";
-import { faseLegible } from "@/lib/queries/cultivos";
+import { CheckCircle2, CirclePause, BatteryCharging, Footprints, Circle, PencilLine, Timer } from "lucide-react";
+import { faseLegible, type TonoFase } from "@/lib/cultivos/clases";
 
-const ESTILO = {
+const ESTILO: Record<TonoFase, { Icono: typeof Circle; color: string }> = {
+  registrando: { Icono: PencilLine, color: "var(--muted-foreground)" },
   listo: { Icono: Circle, color: "var(--muted-foreground)" },
   revision: { Icono: Footprints, color: "var(--series-1)" },
   pausado: { Icono: CirclePause, color: "var(--status-serious)" },
   carga: { Icono: BatteryCharging, color: "var(--status-serious)" },
   completo: { Icono: CheckCircle2, color: "var(--status-good-text)" },
-} as const;
+};
 
-export function FaseRecorrido({ fase, completa }: { fase: string | null; completa: boolean }) {
-  const { etiqueta, tono } = faseLegible(fase, completa);
+export function FaseRecorrido({ fase }: { fase: string | null }) {
+  const { etiqueta, tono } = faseLegible(fase);
   const { Icono, color } = ESTILO[tono];
   return (
     <span className="inline-flex items-center gap-1 text-sm" style={{ color }}>
@@ -29,5 +30,15 @@ export function Progreso({ completados, total }: { completados: number; total: n
       </span>
       <span className="text-xs tabular-nums text-muted-foreground">{completados}/{total}</span>
     </div>
+  );
+}
+
+/** Distintivo obligatorio para la demo: el avance es simulado, las lecturas son de la cámara real. */
+export function DistintivoSimulado({ compacto = false }: { compacto?: boolean }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--status-warning)] bg-[color-mix(in_oklab,var(--status-warning)_14%,transparent)] px-2 py-0.5 text-[11px] font-medium text-foreground">
+      <Timer className="size-3" />
+      {compacto ? "Demo simulada" : "Recorrido simulado · cámara real"}
+    </span>
   );
 }

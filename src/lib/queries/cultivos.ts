@@ -1,10 +1,16 @@
-import { sql } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 import { getDb } from "@/db";
 import type { Puntuaciones } from "@/db/schema";
 
-/** Clases del modelo en el orden que usa la APK. */
-export const CLASES = ["alternaria", "botrytis", "sana", "trips"] as const;
-export type Clase = (typeof CLASES)[number];
+/**
+ * Consultas de las pantallas Capturas y Recorridos sobre las tablas del adaptador 0.2.2.
+ * El payload completo de la APK vive en `datos` (JSONB); aquí se leen sus campos.
+ */
+
+export { CLASES, type Clase } from "@/lib/cultivos/clases";
+
+/** Origen del recorrido: real (operador en campo) o demo con avance simulado por tiempo. */
+export type Origen = "real" | "demo";
 
 export type FiltrosCapturas = {
   lote?: string;
@@ -12,84 +18,115 @@ export type FiltrosCapturas = {
   desde?: string; // YYYY-MM-DD, hora de Colombia
   hasta?: string;
   alerta?: "si" | "no";
+  origen?: Origen;
 };
+
+const iso = (c: string) => sql.raw(`to_char(${c} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`);
+const SIMULADO = sql.raw(`COALESCE((r.datos->>'simulated')::boolean, false)`);
+const INSPECCION = sql.raw(`r.datos->'route_context'->>'inspection_id'`);
+
+function where(f: FiltrosCapturas): SQL {
+  return sql`
+    r.tipo = 'observation'
+    ${f.lote ? sql`AND r.lote_id = ${f.lote}` : sql``}
+    ${f.revision ? sql`AND ${INSPECCION} = ${f.revision}` : sql``}
+    ${f.desde ? sql`AND r.capturado_en >= ${f.desde}::date` : sql``}
+    ${f.hasta ? sql`AND r.capturado_en < ${f.hasta}::date + 1` : sql``}
+    ${f.alerta === "si" ? sql`AND r.alerta` : f.alerta === "no" ? sql`AND NOT r.alerta` : sql``}
+    ${f.origen === "demo" ? sql`AND ${SIMULADO}` : f.origen === "real" ? sql`AND NOT ${SIMULADO}` : sql``}
+  `;
+}
+
+const COLUMNAS_CAPTURA = sql`
+  r.id, ${iso("r.capturado_en")} AS "capturadoEn", ${iso("r.recibido_en")} AS "recibidoEn",
+  r.lote_id AS "loteId", r.alerta, r.puntuaciones, (r.foto IS NOT NULL) AS "tieneFoto",
+  r.revision_humana AS "revisionHumana", ${iso("r.revisado_en")} AS "revisadoEn",
+  r.datos->>'model_version' AS modelo,
+  r.datos->>'capture_mode' AS "modoCaptura",
+  r.datos->>'mission' AS mision,
+  (r.datos->>'schema_version') IS NULL AS antigua,
+  ${SIMULADO} AS simulado,
+  ${INSPECCION} AS "inspectionId",
+  r.datos->'route_context'->>'plan_id' AS "planId",
+  r.datos->'route_context'->>'waypoint_id' AS "waypointId",
+  (coalesce(r.datos->'location', r.datos->'route_context'->'location')->>'latitude')::float AS lat,
+  (coalesce(r.datos->'location', r.datos->'route_context'->'location')->>'longitude')::float AS lng,
+  (coalesce(r.datos->'location', r.datos->'route_context'->'location')->>'accuracy_m')::float AS "precisionM",
+  c.datos->>'name' AS "recorridoNombre"
+`;
 
 export type CapturaFila = {
   id: string;
   capturadoEn: string;
+  recibidoEn: string;
   loteId: string | null;
+  alerta: boolean;
+  puntuaciones: Puntuaciones | null;
+  tieneFoto: boolean;
+  revisionHumana: string;
+  revisadoEn: string | null;
+  modelo: string | null;
+  modoCaptura: string | null;
+  mision: string | null;
+  antigua: boolean;
+  simulado: boolean;
   inspectionId: string | null;
   planId: string | null;
   waypointId: string | null;
-  modelo: string | null;
-  puntuaciones: Puntuaciones | null;
-  alerta: boolean;
-  modoCaptura: string | null;
-  tieneFoto: boolean;
-  revisionHumana: string;
-  tipo: string;
   lat: number | null;
   lng: number | null;
   precisionM: number | null;
   recorridoNombre: string | null;
 };
 
-const iso = (c: string) => sql.raw(`to_char(${c} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`);
-
-function where(f: FiltrosCapturas) {
-  return sql`
-    r.tipo <> 'route_snapshot'
-    ${f.lote ? sql`AND r.lote_id = ${f.lote}` : sql``}
-    ${f.revision ? sql`AND r.inspection_id = ${f.revision}` : sql``}
-    ${f.desde ? sql`AND r.capturado_en >= ${f.desde}::date` : sql``}
-    ${f.hasta ? sql`AND r.capturado_en < ${f.hasta}::date + 1` : sql``}
-    ${f.alerta === "si" ? sql`AND r.alerta` : f.alerta === "no" ? sql`AND NOT r.alerta` : sql``}
-  `;
-}
-
 export async function getCapturas(f: FiltrosCapturas, limite = 200): Promise<CapturaFila[]> {
   const res = await getDb().execute(sql`
-    SELECT r.id, ${iso("r.capturado_en")} AS "capturadoEn", r.lote_id AS "loteId",
-           r.inspection_id AS "inspectionId", r.plan_id AS "planId", r.waypoint_id AS "waypointId",
-           r.modelo, r.puntuaciones, r.alerta, r.modo_captura AS "modoCaptura",
-           (r.foto IS NOT NULL) AS "tieneFoto", r.revision_humana AS "revisionHumana", r.tipo,
-           r.lat, r.lng, r.precision_m AS "precisionM", c.nombre AS "recorridoNombre"
+    SELECT ${COLUMNAS_CAPTURA}
     FROM cultivos_registros r
-    LEFT JOIN cultivos_recorridos c ON c.inspection_id = r.inspection_id
+    LEFT JOIN cultivos_recorridos c ON c.inspection_id::text = ${INSPECCION}
     WHERE ${where(f)}
-    ORDER BY r.capturado_en DESC
+    ORDER BY r.capturado_en DESC, r.seq DESC
     LIMIT ${limite}
   `);
   return res.rows as CapturaFila[];
 }
 
+/** Conteos separados: lo real nunca se suma con la demo simulada. */
 export async function getResumenCapturas(f: FiltrosCapturas) {
   const res = await getDb().execute(sql`
-    SELECT count(*)::int AS lecturas,
-           count(*) FILTER (WHERE r.alerta)::int AS alertas,
-           count(*) FILTER (WHERE r.foto IS NOT NULL)::int AS "conFoto",
-           count(DISTINCT r.inspection_id)::int AS revisiones,
+    SELECT count(*) FILTER (WHERE NOT ${SIMULADO})::int AS "lecturasReales",
+           count(*) FILTER (WHERE ${SIMULADO})::int AS "lecturasDemo",
+           count(*) FILTER (WHERE r.alerta AND NOT ${SIMULADO})::int AS "alertasReales",
+           count(*) FILTER (WHERE r.alerta AND ${SIMULADO})::int AS "alertasDemo",
            count(*) FILTER (WHERE r.alerta AND r.revision_humana = 'pendiente')::int AS "alertasPendientes",
+           count(*) FILTER (WHERE r.foto IS NOT NULL)::int AS "conFoto",
+           count(DISTINCT ${INSPECCION}) FILTER (WHERE NOT ${SIMULADO})::int AS "revisionesReales",
+           count(DISTINCT ${INSPECCION}) FILTER (WHERE ${SIMULADO})::int AS "revisionesDemo",
            ${iso("max(r.capturado_en)")} AS ultima
     FROM cultivos_registros r WHERE ${where(f)}
   `);
-  return res.rows[0] as { lecturas: number; alertas: number; conFoto: number; revisiones: number; alertasPendientes: number; ultima: string | null };
+  return res.rows[0] as {
+    lecturasReales: number;
+    lecturasDemo: number;
+    alertasReales: number;
+    alertasDemo: number;
+    alertasPendientes: number;
+    conFoto: number;
+    revisionesReales: number;
+    revisionesDemo: number;
+    ultima: string | null;
+  };
 }
 
-export async function getCaptura(id: string) {
+export async function getCaptura(id: string): Promise<CapturaFila | null> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
   const res = await getDb().execute(sql`
-    SELECT r.id, ${iso("r.capturado_en")} AS "capturadoEn", ${iso("r.recibido_en")} AS "recibidoEn",
-           r.lote_id AS "loteId", r.inspection_id AS "inspectionId", r.plan_id AS "planId", r.waypoint_id AS "waypointId",
-           r.modelo, r.puntuaciones, r.alerta, r.modo_captura AS "modoCaptura", r.tipo, r.schema_version AS "schemaVersion",
-           (r.foto IS NOT NULL) AS "tieneFoto", r.foto_nombre AS "fotoNombre", r.foto_bytes AS "fotoBytes",
-           r.revision_humana AS "revisionHumana", ${iso("r.revisado_en")} AS "revisadoEn",
-           r.lat, r.lng, r.precision_m AS "precisionM", r.datos, c.nombre AS "recorridoNombre"
+    SELECT ${COLUMNAS_CAPTURA}
     FROM cultivos_registros r
-    LEFT JOIN cultivos_recorridos c ON c.inspection_id = r.inspection_id
-    WHERE r.id = ${id}
+    LEFT JOIN cultivos_recorridos c ON c.inspection_id::text = ${INSPECCION}
+    WHERE r.id = ${id} AND r.tipo = 'observation'
   `);
-  return (res.rows[0] ?? null) as (CapturaFila & { recibidoEn: string; schemaVersion: number | null; fotoNombre: string | null; fotoBytes: number | null; revisadoEn: string | null; datos: Record<string, unknown> }) | null;
+  return (res.rows[0] ?? null) as CapturaFila | null;
 }
 
 export async function getFoto(id: string): Promise<Buffer | null> {
@@ -100,27 +137,39 @@ export async function getFoto(id: string): Promise<Buffer | null> {
 
 export type RecorridoFila = {
   inspectionId: string;
-  planId: string | null;
-  loteId: string | null;
+  planId: string;
+  loteId: string;
   nombre: string | null;
-  fase: string | null;
+  fase: string;
   completados: number;
   total: number;
-  completa: boolean;
   revision: number;
   actualizadoEn: string;
+  simulado: boolean;
+  segundosPorPunto: number | null;
+  conGeometria: boolean;
   lecturas: number;
   alertas: number;
 };
 
-export async function getRecorridos(lote?: string): Promise<RecorridoFila[]> {
+const COLUMNAS_RECORRIDO = sql`
+  c.inspection_id AS "inspectionId", c.plan_id AS "planId", c.lote_id AS "loteId",
+  c.datos->>'name' AS nombre, c.fase, c.completados, c.total, c.revision::int AS revision,
+  ${iso("c.actualizado_en")} AS "actualizadoEn",
+  COALESCE((c.datos->>'simulated')::boolean, false) AS simulado,
+  (c.datos->>'simulation_point_seconds')::int AS "segundosPorPunto",
+  EXISTS (SELECT 1 FROM jsonb_array_elements(c.datos->'waypoints') w WHERE w ? 'display_position' AND w->'display_position' <> 'null'::jsonb) AS "conGeometria",
+  (SELECT count(*) FROM cultivos_registros r WHERE r.tipo = 'observation' AND ${INSPECCION} = c.inspection_id::text)::int AS lecturas,
+  (SELECT count(*) FROM cultivos_registros r WHERE r.alerta AND ${INSPECCION} = c.inspection_id::text)::int AS alertas
+`;
+
+export async function getRecorridos(f: { lote?: string; origen?: Origen } = {}): Promise<RecorridoFila[]> {
   const res = await getDb().execute(sql`
-    SELECT c.inspection_id AS "inspectionId", c.plan_id AS "planId", c.lote_id AS "loteId", c.nombre, c.fase,
-           c.completados, c.total, c.completa, c.revision, ${iso("c.actualizado_en")} AS "actualizadoEn",
-           (SELECT count(*) FROM cultivos_registros r WHERE r.inspection_id = c.inspection_id AND r.tipo <> 'route_snapshot')::int AS lecturas,
-           (SELECT count(*) FROM cultivos_registros r WHERE r.inspection_id = c.inspection_id AND r.alerta)::int AS alertas
+    SELECT ${COLUMNAS_RECORRIDO}
     FROM cultivos_recorridos c
-    ${lote ? sql`WHERE c.lote_id = ${lote}` : sql``}
+    WHERE TRUE
+      ${f.lote ? sql`AND c.lote_id = ${f.lote}` : sql``}
+      ${f.origen === "demo" ? sql`AND COALESCE((c.datos->>'simulated')::boolean, false)` : f.origen === "real" ? sql`AND NOT COALESCE((c.datos->>'simulated')::boolean, false)` : sql``}
     ORDER BY c.actualizado_en DESC
   `);
   return res.rows as RecorridoFila[];
@@ -129,62 +178,62 @@ export async function getRecorridos(lote?: string): Promise<RecorridoFila[]> {
 export async function getRecorrido(id: string) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
   const res = await getDb().execute(sql`
-    SELECT c.inspection_id AS "inspectionId", c.plan_id AS "planId", c.lote_id AS "loteId", c.nombre, c.fase,
-           c.completados, c.total, c.completa, c.revision, ${iso("c.actualizado_en")} AS "actualizadoEn", c.puntos, c.datos,
-           (SELECT count(*) FROM cultivos_recorridos o WHERE o.plan_id = c.plan_id)::int AS "revisionesDelPlan"
+    SELECT ${COLUMNAS_RECORRIDO}, c.datos->'waypoints' AS puntos,
+           (SELECT count(*) FROM cultivos_recorridos o WHERE o.plan_id = c.plan_id)::int AS "revisionesDelPlan",
+           (SELECT count(*) FROM cultivos_registros r WHERE r.tipo = 'route_snapshot' AND r.datos->'route'->>'id' = c.inspection_id::text)::int AS "versionesRecibidas"
     FROM cultivos_recorridos c WHERE c.inspection_id = ${id}
   `);
-  return (res.rows[0] ?? null) as (Omit<RecorridoFila, "lecturas" | "alertas"> & { puntos: unknown[]; datos: Record<string, unknown>; revisionesDelPlan: number }) | null;
+  return (res.rows[0] ?? null) as (RecorridoFila & { puntos: unknown[]; revisionesDelPlan: number; versionesRecibidas: number }) | null;
 }
 
-/** Revisiones que aparecen en el filtro. */
+/** Revisiones que aparecen en el filtro de Capturas. */
 export async function getOpcionesRevision() {
   const res = await getDb().execute(sql`
-    SELECT DISTINCT r.inspection_id AS id, coalesce(c.nombre, left(r.inspection_id::text, 8)) AS nombre
-    FROM cultivos_registros r LEFT JOIN cultivos_recorridos c ON c.inspection_id = r.inspection_id
-    WHERE r.inspection_id IS NOT NULL ORDER BY 2
+    SELECT DISTINCT ${INSPECCION} AS id, coalesce(c.datos->>'name', left(${INSPECCION}, 8)) AS nombre
+    FROM cultivos_registros r
+    LEFT JOIN cultivos_recorridos c ON c.inspection_id::text = ${INSPECCION}
+    WHERE r.tipo = 'observation' AND ${INSPECCION} IS NOT NULL
+    ORDER BY 2
   `);
   return res.rows as { id: string; nombre: string }[];
 }
 
-/** Punto de un recorrido normalizado; nunca inventa coordenadas. */
+/** Punto de un recorrido. `lat/lng` es GPS medido; nunca se usa la posición simulada como GPS. */
 export type PuntoRecorrido = {
   id: string;
   orden: number;
   nombre: string | null;
   completado: boolean;
+  revisadoEn: string | null;
+  virtual: boolean;
   lat: number | null;
   lng: number | null;
   precisionM: number | null;
 };
 
-export function normalizarPuntos(puntos: unknown[]): PuntoRecorrido[] {
-  return puntos.map((p, i) => {
+/**
+ * Normaliza los puntos de un `route_snapshot`. El avance es secuencial: los primeros
+ * `completados` puntos están revisados, igual que en el feed GeoJSON del adaptador.
+ */
+export function normalizarPuntos(puntos: unknown[] | null, completados: number): PuntoRecorrido[] {
+  return (puntos ?? []).map((p, i) => {
     const o = (p && typeof p === "object" ? p : {}) as Record<string, unknown>;
-    const loc = (o.location && typeof o.location === "object" ? o.location : o) as Record<string, unknown>;
+    const loc = (o.location && typeof o.location === "object" ? o.location : null) as Record<string, unknown> | null;
     const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
-    const lat = n(loc.lat ?? loc.latitude);
-    const lng = n(loc.lng ?? loc.lon ?? loc.longitude);
-    const estado = String(o.status ?? o.state ?? "").toLowerCase();
+    const lat = loc ? n(loc.latitude) : null;
+    const lng = loc ? n(loc.longitude) : null;
     return {
       id: String(o.id ?? i),
-      orden: n(o.order ?? o.index ?? o.position) ?? i + 1,
-      nombre: typeof o.name === "string" ? o.name : typeof o.label === "string" ? o.label : null,
-      completado: o.completed === true || o.done === true || o.reviewed === true || ["completed", "complete", "done", "reviewed", "revisado", "completo"].includes(estado),
+      orden: i + 1,
+      nombre: typeof o.label === "string" ? o.label : null,
+      completado: i < completados,
+      revisadoEn: typeof o.reviewed_at === "string" ? o.reviewed_at : null,
+      virtual: o.source === "timed_simulation",
       lat: lat !== null && lng !== null ? lat : null,
       lng: lat !== null && lng !== null ? lng : null,
-      precisionM: n(loc.accuracy_m ?? loc.accuracy ?? loc.precision_m ?? loc.precision),
+      precisionM: loc ? n(loc.accuracy_m) : null,
     };
-  }).sort((a, b) => a.orden - b.orden);
+  });
 }
 
-/** Estados de una revisión tal como los muestra el dashboard. */
-export function faseLegible(fase: string | null, completa: boolean): { etiqueta: string; tono: "listo" | "revision" | "pausado" | "carga" | "completo" } {
-  if (completa) return { etiqueta: "Completo", tono: "completo" };
-  const f = (fase ?? "").toLowerCase();
-  if (/(charg|carga)/.test(f)) return { etiqueta: "En carga", tono: "carga" };
-  if (/(paus)/.test(f)) return { etiqueta: "Pausado", tono: "pausado" };
-  if (/(progress|review|revisi|running|active|activo)/.test(f)) return { etiqueta: "En revisión", tono: "revision" };
-  if (/(complet|done)/.test(f)) return { etiqueta: "Completo", tono: "completo" };
-  return { etiqueta: "Listo", tono: "listo" };
-}
+export { faseLegible, type TonoFase } from "@/lib/cultivos/clases";

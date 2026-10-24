@@ -17,15 +17,16 @@ URL base de producción: `https://arandanos-dashboard.vercel.app`
 
 ## 2. Endpoints
 
-Los endpoints de `/api/ingesta` y `/api/lotes` están probados en producción. `/api/events` está probado en local y queda activo en producción después del próximo despliegue.
+Los endpoints de `/api/ingesta` y `/api/lotes` están probados en producción. `/api/events` y `/api/recorridos` usan el adaptador 0.2.2 de la APK (sección 4).
 
 | Método | Ruta | Qué recibe | Auth |
 |---|---|---|---|
 | `POST` | `/api/ingesta/vuelos` | Un vuelo de dron con sus detecciones | Sí |
 | `POST` | `/api/ingesta/lecturas` | Lote de lecturas de sensores (hasta 5000) | Sí |
-| `POST` | `/api/events` | Observaciones y estados de recorrido de la APK Cultivos a bordo 0.2.0 | Sí |
+| `POST` | `/api/events` | Observaciones y estados de recorrido de la APK Cultivos a bordo 0.2.2 | Sí |
 | `GET` | `/api/events?after=0&lote=L01` | Consulta entre servidores, hasta 100 registros con cursor | Clave de lectura |
 | `GET` | `/api/events/{id}/photo` | JPEG de una captura, entre servidores | Clave de lectura |
+| `GET` | `/api/recorridos?lote=L01` | GeoJSON de rutas para mapas, entre servidores | Clave de lectura |
 | `GET` | `/api/lotes` | Lotes con su estado actual (para validar IDs) | No |
 
 ## 3. Autenticación
@@ -39,39 +40,42 @@ x-api-key: <INGEST_API_KEY>
 
 El token se entrega por un canal privado. Está guardado en Vercel como variable `INGEST_API_KEY` de tipo sensitive y no se puede volver a leer desde el panel. Para rotarlo se crea uno nuevo y se redespliega.
 
-## 4. `POST /api/events` (APK Cultivos a bordo 0.2.0)
+## 4. APK Cultivos a bordo 0.2.2: `/api/events` y `/api/recorridos`
 
-URL base que se escribe en **Receptor** de la APK: `https://arandanos-dashboard.vercel.app/api`. La app agrega `/events`.
+El receptor usa el código del adaptador **Integracion_dashboard 0.2.2** copiado en `src/lib/cultivos/adaptador/`. Las reglas de validación, la idempotencia y el GeoJSON son las del adaptador, probadas con JSON generados por Android. La conexión vive en `src/lib/cultivos/servicio.ts`.
 
-### Tipos de evento
+URL base que se escribe en **Receptor** de la APK: `https://arandanos-dashboard.vercel.app/api`. La app agrega `/events` y, para importar contornos, usa `/api/lotes`.
 
-- `type: "observation"`: cuatro puntuaciones de 0 a 1 (`alternaria`, `botrytis`, `sana`, `trips`), `alert`, `capture_mode` (`periodic`, `automatic`, `manual`, `route_reference`), foto JPEG opcional en `photo_base64` sin prefijo `data:`, y `route_context` con `inspection_id`, `plan_id`, `lot_id`, `waypoint_id` y `location`.
-- `type: "route_snapshot"`: objeto `route` con `id` de revisión, `plan_id`, `lot_id`, `name`, `phase`, `completed`, `revision`, `updated_at` y `waypoints`.
-- Capturas de versiones anteriores sin `type`: se aceptan como capturas antiguas, sin inventarles lote ni recorrido.
+| Ruta | Para qué | Clave |
+|---|---|---|
+| `POST /api/events` | Observaciones (`observation`) y estados de recorrido (`route_snapshot`) | `INGEST_API_KEY` |
+| `GET /api/events?after=0&lote=L01` | Hasta 100 registros con cursor `siguiente` | `DASHBOARD_READ_API_KEY` |
+| `GET /api/events/{id}/photo` | JPEG de una captura; 404 si no tiene | `DASHBOARD_READ_API_KEY` |
+| `GET /api/recorridos?lote=L01` | `FeatureCollection` con `boundary`, `route`, `waypoint` y `position` | `DASHBOARD_READ_API_KEY` |
+| `GET /recorridos/geojson` | Mismo GeoJSON para los mapas del propio dashboard | Ninguna (ver nota) |
 
-### Reglas del receptor
+Respuestas del receptor: `201` al guardar, `200` con `new:false` al reintentar el mismo contenido, `409` si el UUID se reutiliza con otro contenido, `422` si el lote no está en el catálogo, `400` si no cumple el contrato, `413` si el JSON supera 3,5 MB, `415` si no es JSON y `401` sin token.
 
-| Caso | Respuesta |
-|---|---|
-| UUID nuevo, guardado después del COMMIT | `201` `{"id":"…","status":"stored","new":true}` |
-| Mismo UUID y mismo contenido (reintento) | `200` `{"id":"…","status":"stored","new":false}`, sin otra fila ni foto |
-| Mismo UUID con contenido distinto | `409`, no sobrescribe |
-| Lote que no está en `/api/lotes` | `422` con `lotesValidos` |
-| Campo inválido, puntuación fuera de 0 a 1, foto con `data:` o que no es JPEG | `400` |
-| Foto mayor a 2.000.000 bytes o JSON mayor a 3.500.000 bytes | `413` |
-| Sin token | `401` |
+Cómo se integró:
 
-- La foto y sus puntuaciones se guardan en la misma fila de `cultivos_registros`, en la misma transacción. La foto va en una columna `bytea`.
-- Cada revisión guarda su última versión en `cultivos_recorridos`. Una versión con `revision` menor o igual que llega tarde queda en el historial, pero no hace retroceder el progreso.
-- NDVI, cobertura, severidad y área afectada no se piden ni se calculan para estas observaciones.
-- Estas tablas no se mezclan con la simulación y no tienen clave foránea a `lotes`, así que recargar la simulación no borra capturas reales.
-- Vercel limita el cuerpo de las funciones a 4,5 MB. Los límites de la APK quedan por debajo.
+- **Catálogo de lotes.** El adaptador valida el lote contra la tabla `lotes` del dashboard, la misma que publica `/api/lotes`. No se usa `cultivos_lotes`.
+- **Tablas.** `cultivos_registros` y `cultivos_recorridos` tienen las columnas y restricciones de `001_cultivos.sql`, más `revision_humana` y `revisado_en`. No tienen clave foránea al catálogo, para que recargar la simulación nunca borre evidencia real.
+- **Demo simulada.** Los registros con `simulated:true` se muestran con el distintivo **Recorrido simulado · cámara real** y se cuentan aparte de las revisiones reales.
+- **Mapa.** `leaflet-routes.mjs` se monta sobre la instancia Leaflet existente, sin reemplazar el fondo satelital, en Hoy, Recorridos, el detalle de cada lote y el detalle de cada recorrido.
+- **Nota de seguridad.** El dashboard no tiene login en el MVP. Por eso `/recorridos/geojson` y las fotos de `/capturas/{id}/foto` tienen la misma visibilidad que el resto del dashboard. Al agregar sesión, hay que verificarla en esas dos rutas.
 
-### Consulta entre servidores
+### Cambios sobre el código del adaptador 0.2.2
 
-`GET /api/events?after=0&lote=L01&limit=100` con `Authorization: Bearer <DASHBOARD_READ_API_KEY>`. Responde `{ "registros": [...], "siguiente": <seq o null> }`; para la página siguiente se pasa `after=<siguiente>`. Los registros no traen los bytes de la foto, solo `tiene_foto`. La foto se pide en `GET /api/events/{id}/photo`, que responde `404` si no hay foto. Esta clave nunca debe ir al navegador.
+Para que el equipo de la APK los lleve a su versión:
 
-Pruebas del contrato: `scripts/probar-events.mjs` (ver el encabezado del archivo).
+1. **`repository.mjs`: catálogo configurable.** `makeRepository(pool, { tablaLotes })`. El valor por defecto sigue siendo `cultivos_lotes`.
+2. **`repository.mjs`: el cursor de `GET /api/events` se ordenaba como texto.** La consulta seleccionaba `seq::text` y luego hacía `ORDER BY seq`, y PostgreSQL ordenaba por ese alias de texto: 1, 10, 11, …, 2. Con más de 9 registros, `siguiente` apuntaba a un registro equivocado y la paginación repetía o saltaba registros. Se corrigió con `ORDER BY cultivos_registros.seq`. Lo cubre la prueba `tests/adaptador/cursor.test.mjs`.
+3. **`leaflet-routes.mjs`: los puntos se dibujaban vacíos.** `L.geoJSON` aplica `style` también a los `circleMarker` de `pointToLayer`, así que los puntos tomaban `fill:false` y el trazo punteado de la ruta. Se veían como aros sin color de estado, y el clic en su centro caía en la línea de la ruta, no en el punto. Se corrigió devolviendo `{}` en `style` para geometrías `Point`.
+
+### Pruebas
+
+- `npm run test:adaptador`: las 18 pruebas originales del adaptador, sin cambios, más la del cursor. Usan PGlite.
+- `npm run probar:apk`: envía por HTTP los JSON de Android a un servidor real y revisa respuestas, reintentos, el feed GeoJSON y las fotos. Variables: `BASE_URL`, `INGEST_API_KEY`, `READ_KEY`.
 
 ## 5. `POST /api/ingesta/vuelos`
 

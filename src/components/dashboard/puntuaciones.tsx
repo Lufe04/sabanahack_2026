@@ -1,5 +1,5 @@
 import type { Puntuaciones } from "@/db/schema";
-import { CLASES, type Clase } from "@/lib/queries/cultivos";
+import { CLASES, type Clase } from "@/lib/cultivos/clases";
 import { cn } from "@/lib/utils";
 
 export const NOMBRE_CLASE: Record<Clase, string> = { alternaria: "Alternaria", botrytis: "Botrytis", sana: "Sana", trips: "Trips" };

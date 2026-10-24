@@ -8,6 +8,7 @@ import { generarRecomendaciones, estadoSuelo } from "@/lib/recomendaciones";
 import { ENFERMEDADES_LISTA, PARAMS_ENFERMEDAD } from "@/lib/simulador/enfermedades";
 import { COLOR_ENFERMEDAD, NOMBRE_ENFERMEDAD, nivelRiesgo, COLOR_RIESGO } from "@/lib/viz/palette";
 import { getSensoresEstado } from "@/lib/queries/sensores";
+import { geojsonRecorridos } from "@/lib/cultivos/servicio";
 import { MapaLotesLazy } from "@/components/dashboard/mapa-lotes-lazy";
 import { TablaEventos } from "@/components/dashboard/tabla-eventos";
 import { SerieTiempo } from "@/components/charts/serie-tiempo";
@@ -33,7 +34,7 @@ export default async function DetalleLote({ params }: { params: Promise<{ id: st
   const lote = lotes.find((l) => l.id === id);
   if (!lote) notFound();
 
-  const [serie, vuelos, detecciones, eventos, lecturas, ranking, sensores] = await Promise.all([
+  const [serie, vuelos, detecciones, eventos, lecturas, ranking, sensores, rutas] = await Promise.all([
     getSerieDiariaLote(id, 90),
     getVuelosLote(id),
     getDeteccionesLote(id),
@@ -41,6 +42,7 @@ export default async function DetalleLote({ params }: { params: Promise<{ id: st
     getLecturasRecientesLote(id, 48),
     getRankingLotes(),
     getSensoresEstado(),
+    geojsonRecorridos(id),
   ]);
   const acciones = generarRecomendaciones([lote], eventos.filter((e) => e.estado !== "cerrado"), sensores.filter((s) => s.loteId === id));
   const stats = ranking.find((r) => r.loteId === id);
@@ -104,7 +106,7 @@ export default async function DetalleLote({ params }: { params: Promise<{ id: st
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <Seccion titulo="Detecciones del dron" descripcion="Puntos de las últimas detecciones dentro del lote. Tamaño según severidad.">
+        <Seccion titulo="Detecciones y recorridos" descripcion="Círculos de color: detecciones simuladas del dron. Líneas y puntos: recorridos que envía la app.">
           <MapaLotesLazy
             lotes={[lote]}
             centro={{ lat: lote.centroLat, lng: lote.centroLng }}
@@ -112,6 +114,7 @@ export default async function DetalleLote({ params }: { params: Promise<{ id: st
             alto={300}
             detecciones={detecciones.map((d) => ({ lat: d.lat, lng: d.lng, enfermedad: d.enfermedad, severidad: d.severidad }))}
             interactivo={false}
+            recorridos={{ inicial: rutas, url: `/recorridos/geojson?lote=${id}` }}
           />
         </Seccion>
         <Seccion titulo="Riesgo de brote" descripcion="Últimos 90 días. Los brotes aparecen cuando el riesgo se sostiene alto varios días." className="lg:col-span-2">

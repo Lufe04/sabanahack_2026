@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Siren } from "lucide-react";
 import { Encabezado, Seccion } from "@/components/dashboard/encabezado";
 import { Puntuacion4 } from "@/components/dashboard/puntuaciones";
+import { DistintivoSimulado } from "@/components/dashboard/fase-recorrido";
 import { getCaptura } from "@/lib/queries/cultivos";
 import { fmtFecha, fmtNum } from "@/lib/format";
 import { marcarRevision } from "../acciones";
@@ -15,17 +16,18 @@ const MODO: Record<string, string> = { periodic: "Lectura periódica", automatic
 export default async function DetalleCaptura({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const c = await getCaptura(id);
-  if (!c || c.tipo === "route_snapshot") notFound();
+  if (!c) notFound();
 
   const filas: [string, React.ReactNode][] = [
     ["Capturada", fmtFecha(c.capturadoEn, "d 'de' MMMM yyyy, HH:mm:ss")],
     ["Recibida", fmtFecha(c.recibidoEn, "d MMM, HH:mm:ss")],
     ["Lote", c.loteId ? <Link href={`/lotes/${c.loteId}`} className="underline">{c.loteId}</Link> : "Sin lote (captura antigua)"],
+    ["Misión", c.mision ?? "—"],
     ["Revisión", c.inspectionId ? <Link href={`/recorridos/${c.inspectionId}`} className="underline">{c.recorridoNombre ?? c.inspectionId}</Link> : "—"],
     ["Punto del plan", c.waypointId ?? "—"],
     ["Modelo", c.modelo ?? "—"],
-    ["Tipo", MODO[c.modoCaptura ?? ""] ?? (c.tipo === "legacy" ? "Captura de una versión anterior" : c.modoCaptura ?? "—")],
-    ["Ubicación", c.lat !== null && c.lng !== null ? `${c.lat.toFixed(6)}, ${c.lng.toFixed(6)}${c.precisionM ? ` · ±${fmtNum(c.precisionM, 0)} m` : ""}` : "Sin GPS"],
+    ["Tipo", c.antigua ? "Captura de una versión anterior de la app" : MODO[c.modoCaptura ?? ""] ?? c.modoCaptura ?? "—"],
+    ["Ubicación GPS", c.lat !== null && c.lng !== null ? `${c.lat.toFixed(6)}, ${c.lng.toFixed(6)}${c.precisionM ? ` · ±${fmtNum(c.precisionM, 0)} m` : ""}` : c.simulado ? "No aplica: posición simulada en la demo" : "Sin GPS"],
     ["UUID", <code key="id" className="text-xs">{c.id}</code>],
   ];
 
@@ -33,7 +35,7 @@ export default async function DetalleCaptura({ params }: { params: Promise<{ id:
     <>
       <Encabezado
         titulo={<span className="flex items-center gap-3">{c.alerta ? <><Siren className="size-5 text-[var(--status-critical)]" />Alerta del modelo</> : "Captura de campo"}</span>}
-        descripcion={`${c.loteId ?? "Sin lote"} · ${fmtFecha(c.capturadoEn, "d MMM yyyy, HH:mm")}`}
+        descripcion={<span className="flex flex-wrap items-center gap-2">{`${c.loteId ?? "Sin lote"} · ${fmtFecha(c.capturadoEn, "d MMM yyyy, HH:mm")}`}{c.simulado ? <DistintivoSimulado /> : null}</span>}
         acciones={<Link href="/capturas" className="text-sm text-muted-foreground underline">Todas las capturas</Link>}
       />
 

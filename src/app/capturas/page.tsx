@@ -3,6 +3,7 @@ import { Camera, Siren } from "lucide-react";
 import { Encabezado, Seccion } from "@/components/dashboard/encabezado";
 import { Kpi } from "@/components/dashboard/kpi";
 import { Puntuacion4 } from "@/components/dashboard/puntuaciones";
+import { DistintivoSimulado } from "@/components/dashboard/fase-recorrido";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCapturas, getOpcionesRevision, getResumenCapturas, type FiltrosCapturas } from "@/lib/queries/cultivos";
 import { getLotesEstado } from "@/lib/queries/lotes";
@@ -25,6 +26,7 @@ export default async function Capturas({ searchParams }: { searchParams: Promise
     desde: /^\d{4}-\d{2}-\d{2}$/.test(q.desde ?? "") ? q.desde : undefined,
     hasta: /^\d{4}-\d{2}-\d{2}$/.test(q.hasta ?? "") ? q.hasta : undefined,
     alerta: q.alerta === "si" || q.alerta === "no" ? q.alerta : undefined,
+    origen: q.origen === "real" || q.origen === "demo" ? q.origen : undefined,
   };
   const [capturas, resumen, lotes, revisiones] = await Promise.all([getCapturas(filtros), getResumenCapturas(filtros), getLotesEstado(), getOpcionesRevision()]);
   const hayFiltros = Object.values(filtros).some(Boolean);
@@ -36,13 +38,13 @@ export default async function Capturas({ searchParams }: { searchParams: Promise
         descripcion="Lecturas reales que envía la app Cultivos a bordo desde el teléfono. Estos datos no se mezclan con la simulación."
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Kpi etiqueta="Lecturas" valor={fmtNum(resumen.lecturas)} detalle={resumen.ultima ? `última: ${fmtFecha(resumen.ultima, "d MMM, HH:mm")}` : "aún no llega ninguna"} />
-        <Kpi etiqueta="Alertas" valor={resumen.alertas} detalle="automáticas del modelo" tono={resumen.alertas ? "malo" : "neutro"} />
-        <Kpi etiqueta="Alertas sin revisar" valor={resumen.alertasPendientes} detalle="requieren mirada humana" tono={resumen.alertasPendientes ? "malo" : "bueno"} />
-        <Kpi etiqueta="Con foto" valor={resumen.conFoto} detalle="alertas, manuales y referencias" />
-        <Kpi etiqueta="Revisiones" valor={resumen.revisiones} detalle="recorridos con lecturas" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Kpi etiqueta="Lecturas reales" valor={fmtNum(resumen.lecturasReales)} detalle={`${fmtNum(resumen.lecturasDemo)} más en demos simuladas`} />
+        <Kpi etiqueta="Alertas reales" valor={resumen.alertasReales} detalle={`${resumen.alertasDemo} más en demos · ${resumen.alertasPendientes} sin revisar en total`} tono={resumen.alertasPendientes ? "malo" : "neutro"} />
+        <Kpi etiqueta="Revisiones reales" valor={resumen.revisionesReales} detalle={`${resumen.revisionesDemo} demos simuladas`} />
+        <Kpi etiqueta="Con foto" valor={resumen.conFoto} detalle={resumen.ultima ? `última lectura: ${fmtFecha(resumen.ultima, "d MMM, HH:mm")}` : "aún no llega ninguna lectura"} />
       </div>
+      <p className="mt-2 text-xs text-muted-foreground">Las demos avanzan por temporizador, pero sus puntuaciones y fotos sí vienen de la cámara. Por eso se cuentan aparte y nunca se suman con las revisiones reales.</p>
 
       <form method="get" className="mt-4 flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-3 text-sm">
         <label className="grid gap-1">
@@ -73,6 +75,14 @@ export default async function Capturas({ searchParams }: { searchParams: Promise
             <option value="">Todas</option>
             <option value="si">Solo alertas</option>
             <option value="no">Sin alerta</option>
+          </select>
+        </label>
+        <label className="grid gap-1">
+          <span className="text-xs text-muted-foreground">Origen</span>
+          <select id="f-origen" name="origen" defaultValue={filtros.origen ?? ""} className="h-9 rounded-md border border-border bg-background px-2">
+            <option value="">Real y demo</option>
+            <option value="real">Solo revisiones reales</option>
+            <option value="demo">Solo demos simuladas</option>
           </select>
         </label>
         <button type="submit" className="h-9 rounded-md bg-primary px-3 font-medium text-primary-foreground">Filtrar</button>
@@ -106,14 +116,15 @@ export default async function Capturas({ searchParams }: { searchParams: Promise
                   <TableCell>
                     {c.loteId ? <Link href={`/lotes/${c.loteId}`} className="hover:underline">{c.loteId}</Link> : <span className="text-muted-foreground">Sin lote</span>}
                     {c.inspectionId ? (
-                      <div className="text-[11px]"><Link href={`/recorridos/${c.inspectionId}`} className="text-muted-foreground hover:underline">{c.recorridoNombre ?? c.inspectionId.slice(0, 8)}</Link></div>
+                      <div className="text-[11px]"><Link href={`/recorridos/${c.inspectionId}`} className="text-muted-foreground hover:underline">{c.recorridoNombre ?? c.mision ?? c.inspectionId.slice(0, 8)}</Link></div>
                     ) : null}
+                    {c.simulado ? <div className="mt-1"><DistintivoSimulado compacto /></div> : null}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     {c.alerta ? (
                       <span className="inline-flex items-center gap-1 text-sm font-medium text-[var(--status-critical)]"><Siren className="size-3.5" />Alerta</span>
                     ) : (
-                      <span className="text-sm">{MODO[c.modoCaptura ?? ""] ?? (c.tipo === "legacy" ? "Captura antigua" : c.modoCaptura ?? "—")}</span>
+                      <span className="text-sm">{c.antigua ? "Captura antigua" : MODO[c.modoCaptura ?? ""] ?? c.modoCaptura ?? "—"}</span>
                     )}
                   </TableCell>
                   <TableCell><Puntuacion4 p={c.puntuaciones} compacto /></TableCell>

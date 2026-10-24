@@ -35,6 +35,12 @@ export function getDb(): Db {
   return _db;
 }
 
+/** Pool `pg` compartido: el adaptador de la APK lo usa directamente (BEGIN/COMMIT propios). */
+export function getPool(): Pool {
+  getDb();
+  return _pool!;
+}
+
 export async function closeDb() {
   await _pool?.end();
   _pool = null;

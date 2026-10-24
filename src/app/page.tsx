@@ -11,16 +11,18 @@ import { getEventos, getLotesEstado, getSerieDiariaFinca } from "@/lib/queries/l
 import { getSensoresEstado } from "@/lib/queries/sensores";
 import { generarRecomendaciones, amenazaPrincipal, estadoSuelo } from "@/lib/recomendaciones";
 import { FINCA } from "@/lib/simulador/finca";
+import { geojsonRecorridos } from "@/lib/cultivos/servicio";
 import { fmtFecha, fmtNum } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 export default async function Hoy() {
-  const [lotes, serie, abiertos, sensores] = await Promise.all([
+  const [lotes, serie, abiertos, sensores, rutas] = await Promise.all([
     getLotesEstado(),
     getSerieDiariaFinca(60),
     getEventos({ soloAbiertos: true }),
     getSensoresEstado(),
+    geojsonRecorridos(null),
   ]);
   const acciones = generarRecomendaciones(lotes, abiertos, sensores);
   const urgentes = acciones.filter((a) => a.prioridad === "alta").length;
@@ -58,7 +60,7 @@ export default async function Hoy() {
           <ListaAcciones acciones={acciones} limite={8} />
         </Seccion>
         <Seccion titulo="Mapa de la finca" descripcion="Color y número según el riesgo de hoy; 🐛 marca brotes abiertos. Clic en un lote para ver el detalle." className="lg:col-span-2">
-          <MapaLotesLazy lotes={lotes} centro={FINCA.centro} alto={420} compacto />
+          <MapaLotesLazy lotes={lotes} centro={FINCA.centro} alto={420} compacto recorridos={{ inicial: rutas, url: "/recorridos/geojson" }} />
         </Seccion>
       </div>
 

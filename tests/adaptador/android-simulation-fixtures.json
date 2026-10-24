@@ -1,0 +1,246 @@
+[
+  {
+    "id": "f7ee339f-e27a-40cc-a802-61da48b1016d",
+    "schema_version": 2,
+    "type": "route_snapshot",
+    "captured_at": "2026-10-24T08:02:12.279033784Z",
+    "route": {
+      "id": "43ab28d5-1dbe-4cda-8b31-71d259be2a74",
+      "plan_id": "63dd6dc2-94b1-4ae5-be60-de87dc4f5247",
+      "lot_id": "L01",
+      "name": "Demo",
+      "phase": "ready",
+      "waypoints": [
+        {
+          "id": "46355fc8-cecd-42da-90ac-f31f5776e218",
+          "label": "Punto simulado 1",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null
+        },
+        {
+          "id": "4ba5e8bb-b19c-4011-8fa5-34be57da8ceb",
+          "label": "Punto simulado 2",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null
+        }
+      ],
+      "completed": 0,
+      "revision": 1,
+      "created_at": "2026-10-24T08:02:12.278984731Z",
+      "active_ms": 0,
+      "navigation_mode": "timed_simulation",
+      "simulated": true,
+      "nominal_robot_autonomy_hours": 10,
+      "simulation_point_seconds": 5,
+      "updated_at": "2026-10-24T08:02:12.279033784Z"
+    },
+    "simulated": true,
+    "simulation_scope": "route_progress_only",
+    "photo_base64": null
+  },
+  {
+    "id": "45591cdb-4ed5-4d2f-a0b6-e5b6ccd71ef1",
+    "schema_version": 2,
+    "type": "route_snapshot",
+    "captured_at": "2026-10-24T08:02:12.279890402Z",
+    "route": {
+      "id": "43ab28d5-1dbe-4cda-8b31-71d259be2a74",
+      "plan_id": "63dd6dc2-94b1-4ae5-be60-de87dc4f5247",
+      "lot_id": "L01",
+      "name": "Demo",
+      "phase": "active",
+      "waypoints": [
+        {
+          "id": "46355fc8-cecd-42da-90ac-f31f5776e218",
+          "label": "Punto simulado 1",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null
+        },
+        {
+          "id": "4ba5e8bb-b19c-4011-8fa5-34be57da8ceb",
+          "label": "Punto simulado 2",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null
+        }
+      ],
+      "completed": 0,
+      "revision": 2,
+      "created_at": "2026-10-24T08:02:12.278984731Z",
+      "active_ms": 0,
+      "navigation_mode": "timed_simulation",
+      "simulated": true,
+      "nominal_robot_autonomy_hours": 10,
+      "simulation_point_seconds": 5,
+      "updated_at": "2026-10-24T08:02:12.279890402Z",
+      "started_at": "2026-10-24T08:02:12.279874869Z"
+    },
+    "simulated": true,
+    "simulation_scope": "route_progress_only",
+    "photo_base64": null
+  },
+  {
+    "id": "70f69ac1-71c5-48ce-933f-20e01f6d8b21",
+    "schema_version": 2,
+    "type": "observation",
+    "mission": "Demo",
+    "captured_at": "2026-10-24T08:02:12.280484421Z",
+    "model_version": "experimental-v5",
+    "scores": {
+      "alternaria": 0.019999999552965164,
+      "botrytis": 0.029999999329447746,
+      "sana": 0.9300000071525574,
+      "trips": 0.019999999552965164
+    },
+    "alert": false,
+    "status": "experimental_requires_review",
+    "capture_mode": "periodic",
+    "photo_filename": null,
+    "photo_mime": null,
+    "location": null,
+    "route_context": {
+      "inspection_id": "43ab28d5-1dbe-4cda-8b31-71d259be2a74",
+      "plan_id": "63dd6dc2-94b1-4ae5-be60-de87dc4f5247",
+      "lot_id": "L01",
+      "waypoint_id": "46355fc8-cecd-42da-90ac-f31f5776e218",
+      "location": null,
+      "navigation_mode": "timed_simulation",
+      "simulated": true,
+      "position_source": "timed_simulation"
+    },
+    "device": "android",
+    "crop": "blueberry",
+    "simulated": true,
+    "simulation_scope": "route_progress_only",
+    "photo_base64": null
+  },
+  {
+    "id": "7e81e13d-f8f0-4bde-8d4e-b47b4e973633",
+    "schema_version": 2,
+    "type": "route_snapshot",
+    "captured_at": "2026-10-24T08:02:12.281334930Z",
+    "route": {
+      "id": "43ab28d5-1dbe-4cda-8b31-71d259be2a74",
+      "plan_id": "63dd6dc2-94b1-4ae5-be60-de87dc4f5247",
+      "lot_id": "L01",
+      "name": "Demo",
+      "phase": "active",
+      "waypoints": [
+        {
+          "id": "46355fc8-cecd-42da-90ac-f31f5776e218",
+          "label": "Punto simulado 1",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "reviewed_at": "2026-10-24T08:02:12.281310274Z",
+          "completion_source": "timed_simulation"
+        },
+        {
+          "id": "4ba5e8bb-b19c-4011-8fa5-34be57da8ceb",
+          "label": "Punto simulado 2",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null
+        }
+      ],
+      "completed": 1,
+      "revision": 3,
+      "created_at": "2026-10-24T08:02:12.278984731Z",
+      "active_ms": 0,
+      "navigation_mode": "timed_simulation",
+      "simulated": true,
+      "nominal_robot_autonomy_hours": 10,
+      "simulation_point_seconds": 5,
+      "updated_at": "2026-10-24T08:02:12.281334930Z",
+      "started_at": "2026-10-24T08:02:12.279874869Z"
+    },
+    "simulated": true,
+    "simulation_scope": "route_progress_only",
+    "photo_base64": null
+  },
+  {
+    "id": "dadd4dfe-095d-48d1-ae19-f292e6dbf60c",
+    "schema_version": 2,
+    "type": "observation",
+    "mission": "Demo",
+    "captured_at": "2026-10-24T08:02:12.282242514Z",
+    "model_version": "experimental-v5",
+    "scores": {
+      "alternaria": 0.019999999552965164,
+      "botrytis": 0.9300000071525574,
+      "sana": 0.009999999776482582,
+      "trips": 0.03999999910593033
+    },
+    "alert": true,
+    "status": "experimental_requires_review",
+    "capture_mode": "automatic",
+    "photo_filename": "dadd4dfe-095d-48d1-ae19-f292e6dbf60c.jpg",
+    "photo_mime": "image\/jpeg",
+    "location": null,
+    "route_context": {
+      "inspection_id": "43ab28d5-1dbe-4cda-8b31-71d259be2a74",
+      "plan_id": "63dd6dc2-94b1-4ae5-be60-de87dc4f5247",
+      "lot_id": "L01",
+      "waypoint_id": "4ba5e8bb-b19c-4011-8fa5-34be57da8ceb",
+      "location": null,
+      "navigation_mode": "timed_simulation",
+      "simulated": true,
+      "position_source": "timed_simulation"
+    },
+    "device": "android",
+    "crop": "blueberry",
+    "simulated": true,
+    "simulation_scope": "route_progress_only",
+    "photo_base64": "\/9j\/4AAQSkZJRgABAgAAAQABAAD\/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD\/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD\/wAARCAAYABgDASIAAhEBAxEB\/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL\/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6\/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL\/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6\/9oADAMBAAIRAxEAPwD8qqKKKACiiigAooooAKKKKAP\/2Q=="
+  },
+  {
+    "id": "d856be87-f336-4f93-a196-bac10f19865b",
+    "schema_version": 2,
+    "type": "route_snapshot",
+    "captured_at": "2026-10-24T08:02:12.285625832Z",
+    "route": {
+      "id": "43ab28d5-1dbe-4cda-8b31-71d259be2a74",
+      "plan_id": "63dd6dc2-94b1-4ae5-be60-de87dc4f5247",
+      "lot_id": "L01",
+      "name": "Demo",
+      "phase": "completed",
+      "waypoints": [
+        {
+          "id": "46355fc8-cecd-42da-90ac-f31f5776e218",
+          "label": "Punto simulado 1",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "reviewed_at": "2026-10-24T08:02:12.281310274Z",
+          "completion_source": "timed_simulation"
+        },
+        {
+          "id": "4ba5e8bb-b19c-4011-8fa5-34be57da8ceb",
+          "label": "Punto simulado 2",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "reviewed_at": "2026-10-24T08:02:12.285601205Z",
+          "completion_source": "timed_simulation"
+        }
+      ],
+      "completed": 2,
+      "revision": 4,
+      "created_at": "2026-10-24T08:02:12.278984731Z",
+      "active_ms": 0,
+      "navigation_mode": "timed_simulation",
+      "simulated": true,
+      "nominal_robot_autonomy_hours": 10,
+      "simulation_point_seconds": 5,
+      "updated_at": "2026-10-24T08:02:12.285625832Z",
+      "started_at": "2026-10-24T08:02:12.279874869Z",
+      "finished_at": "2026-10-24T08:02:12.285617499Z"
+    },
+    "simulated": true,
+    "simulation_scope": "route_progress_only",
+    "photo_base64": null
+  }
+]
