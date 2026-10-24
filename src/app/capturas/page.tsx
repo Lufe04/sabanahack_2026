@@ -99,7 +99,7 @@ export default async function Capturas({ searchParams }: { searchParams: Promise
             <TableHeader>
               <TableRow>
                 <TableHead>Fecha</TableHead>
-                <TableHead>Bloque y revisión</TableHead>
+                <TableHead>Bloque · cama · planta</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Puntuaciones</TableHead>
                 <TableHead>Foto</TableHead>
@@ -114,7 +114,14 @@ export default async function Capturas({ searchParams }: { searchParams: Promise
                     <div className="text-[11px] text-muted-foreground">{c.modelo ?? "modelo desconocido"}</div>
                   </TableCell>
                   <TableCell>
-                    {c.loteId ? <Link href={`/bloques/${c.loteId}`} className="hover:underline">{c.loteId}</Link> : <span className="text-muted-foreground">Sin bloque</span>}
+                    {c.loteId ? (
+                      <Link href={c.tag ? `/bloques/${c.loteId}?planta=${c.tag}` : `/bloques/${c.loteId}`} className="font-medium hover:underline">
+                        {c.loteId}{c.cama ? ` · cama ${c.cama} · planta ${c.posicion}` : ""}
+                      </Link>
+                    ) : (
+                      <span className="text-muted-foreground">Sin bloque</span>
+                    )}
+                    {c.tag ? <div className="font-mono text-[11px] text-muted-foreground">{c.tag}{c.origenCama === "mvp" ? " · asignado" : ""}</div> : null}
                     {c.inspectionId ? (
                       <div className="text-[11px]"><Link href={`/recorridos/${c.inspectionId}`} className="text-muted-foreground hover:underline">{c.recorridoNombre ?? c.mision ?? c.inspectionId.slice(0, 8)}</Link></div>
                     ) : null}
@@ -124,7 +131,7 @@ export default async function Capturas({ searchParams }: { searchParams: Promise
                     {c.alerta ? (
                       <span className="inline-flex items-center gap-1 text-sm font-medium text-[var(--status-critical)]"><Siren className="size-3.5" />Alerta</span>
                     ) : (
-                      <span className="text-sm">{c.antigua ? "Captura antigua" : MODO[c.modoCaptura ?? ""] ?? c.modoCaptura ?? "—"}</span>
+                      <span className="text-sm">{MODO[c.modoCaptura ?? ""] ?? (c.antigua ? "Captura antigua" : c.modoCaptura ?? "—")}</span>
                     )}
                   </TableCell>
                   <TableCell><Puntuacion4 p={c.puntuaciones} compacto /></TableCell>

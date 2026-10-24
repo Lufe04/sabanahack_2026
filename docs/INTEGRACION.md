@@ -63,6 +63,16 @@ Cómo se integró:
 - **Mapa.** `leaflet-routes.mjs` se monta sobre la instancia Leaflet existente, sin reemplazar el fondo satelital, en Hoy, Recorridos, el detalle de cada lote y el detalle de cada recorrido.
 - **Nota de seguridad.** El dashboard no tiene login en el MVP. Por eso `/recorridos/geojson` y las fotos de `/capturas/{id}/foto` tienen la misma visibilidad que el resto del dashboard. Al agregar sesión, hay que verificarla en esas dos rutas.
 
+### Bloque y cama asignados en el MVP
+
+La app todavía envía las capturas en el formato antiguo: sin `route_context`, así que llegan sin bloque, cama ni planta. Lo único que identifica la planta es el texto de `mission` (`arandanos-prueba-01 | planta <uuid>`). Mientras la app no los envíe, el receptor los completa con una regla fija en `src/lib/cultivos/asignacion-mvp.ts`:
+
+- **Bloque:** el que traiga la app; si no trae ninguno, `L01` (constante `BLOQUE_POR_DEFECTO`).
+- **Cama y planta:** se derivan del identificador de planta de `mission`, o del UUID del registro si no hay. La misma planta cae siempre en el mismo tag, por ejemplo `L01-C28-P101`.
+- Se guarda en `datos.asignacion_mvp`, con `origen` = `app` o `mvp` para cada parte. No cambia `data_hash`, así que los reintentos siguen respondiendo 200 sin duplicar.
+- Si la app empieza a enviar `route_context.lot_id` y la cama (`bed` y `plant_position`), se usan esos valores y la regla deja de actuar.
+- Para completar registros que ya estaban en la base: `npx dotenv -e .env.production.local -- tsx scripts/completar-capturas.ts`.
+
 ### Cambios sobre el código del adaptador 0.2.2
 
 Para que el equipo de la APK los lleve a su versión:

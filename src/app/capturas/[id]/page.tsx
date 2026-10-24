@@ -22,11 +22,13 @@ export default async function DetalleCaptura({ params }: { params: Promise<{ id:
     ["Capturada", fmtFecha(c.capturadoEn, "d 'de' MMMM yyyy, HH:mm:ss")],
     ["Recibida", fmtFecha(c.recibidoEn, "d MMM, HH:mm:ss")],
     ["Bloque", c.loteId ? <Link href={`/bloques/${c.loteId}`} className="underline">{c.loteId}</Link> : "Sin bloque (captura antigua)"],
+    ["Cama", c.cama ?? "—"],
+    ["Planta", c.tag ? <Link href={`/bloques/${c.loteId}?planta=${c.tag}`} className="font-mono underline">{c.tag}</Link> : "—"],
     ["Misión", c.mision ?? "—"],
     ["Revisión", c.inspectionId ? <Link href={`/recorridos/${c.inspectionId}`} className="underline">{c.recorridoNombre ?? c.inspectionId}</Link> : "—"],
     ["Punto del plan", c.waypointId ?? "—"],
     ["Modelo", c.modelo ?? "—"],
-    ["Tipo", c.antigua ? "Captura de una versión anterior de la app" : MODO[c.modoCaptura ?? ""] ?? c.modoCaptura ?? "—"],
+    ["Tipo", MODO[c.modoCaptura ?? ""] ?? (c.antigua ? "Captura de una versión anterior de la app" : c.modoCaptura ?? "—")],
     ["Ubicación GPS", c.lat !== null && c.lng !== null ? `${c.lat.toFixed(6)}, ${c.lng.toFixed(6)}${c.precisionM ? ` · ±${fmtNum(c.precisionM, 0)} m` : ""}` : c.simulado ? "No aplica: posición simulada en la demo" : "Sin GPS"],
     ["UUID", <code key="id" className="text-xs">{c.id}</code>],
   ];
@@ -85,6 +87,12 @@ export default async function DetalleCaptura({ params }: { params: Promise<{ id:
                 </div>
               ))}
             </dl>
+            {c.origenBloque === "mvp" || c.origenCama === "mvp" ? (
+              <p className="mt-3 text-xs text-muted-foreground">
+                La app todavía no envía {c.origenBloque === "mvp" ? "el bloque ni la cama" : "la cama"}: en este MVP se asignan de forma fija en el código
+                {c.plantaApp ? `, a partir del identificador de planta que sí envía (${c.plantaApp.slice(0, 8)}…)` : ""}. La misma planta cae siempre en el mismo tag.
+              </p>
+            ) : null}
             <p className="mt-3 text-xs text-muted-foreground">La cámara del robot no mide severidad ni área afectada: estas puntuaciones describen el encuadre completo.</p>
           </Seccion>
         </div>

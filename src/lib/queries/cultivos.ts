@@ -52,7 +52,13 @@ const COLUMNAS_CAPTURA = sql`
   (coalesce(r.datos->'location', r.datos->'route_context'->'location')->>'latitude')::float AS lat,
   (coalesce(r.datos->'location', r.datos->'route_context'->'location')->>'longitude')::float AS lng,
   (coalesce(r.datos->'location', r.datos->'route_context'->'location')->>'accuracy_m')::float AS "precisionM",
-  c.datos->>'name' AS "recorridoNombre"
+  c.datos->>'name' AS "recorridoNombre",
+  (r.datos->'asignacion_mvp'->>'cama')::int AS cama,
+  (r.datos->'asignacion_mvp'->>'posicion')::int AS posicion,
+  r.datos->'asignacion_mvp'->>'tag' AS tag,
+  r.datos->'asignacion_mvp'->>'plantaApp' AS "plantaApp",
+  coalesce(r.datos->'asignacion_mvp'->'origen'->>'bloque', 'app') AS "origenBloque",
+  coalesce(r.datos->'asignacion_mvp'->'origen'->>'cama', 'app') AS "origenCama"
 `;
 
 export type CapturaFila = {
@@ -77,6 +83,13 @@ export type CapturaFila = {
   lng: number | null;
   precisionM: number | null;
   recorridoNombre: string | null;
+  /** Ubicación en el bloque: la app aún no la envía, la completa la asignación fija del MVP. */
+  cama: number | null;
+  posicion: number | null;
+  tag: string | null;
+  plantaApp: string | null;
+  origenBloque: "app" | "mvp";
+  origenCama: "app" | "mvp";
 };
 
 export async function getCapturas(f: FiltrosCapturas, limite = 200): Promise<CapturaFila[]> {
@@ -237,3 +250,18 @@ export function normalizarPuntos(puntos: unknown[] | null, completados: number):
 }
 
 export { faseLegible, type TonoFase } from "@/lib/cultivos/clases";
+
+/** Última captura de cada planta de un bloque, para ubicarlas en el plano. */
+export async function getCapturasPorPlanta(loteId: string) {
+  const res = await getDb().execute(sql`
+    SELECT DISTINCT ON (r.datos->'asignacion_mvp'->>'tag')
+           r.id AS "observationId", ${iso("r.capturado_en")} AS fecha, r.alerta, r.puntuaciones AS scores,
+           (r.datos->'asignacion_mvp'->>'cama')::int AS cama,
+           (r.datos->'asignacion_mvp'->>'posicion')::int AS posicion,
+           r.datos->'asignacion_mvp'->>'tag' AS tag
+    FROM cultivos_registros r
+    WHERE r.tipo = 'observation' AND r.lote_id = ${loteId} AND r.datos ? 'asignacion_mvp'
+    ORDER BY r.datos->'asignacion_mvp'->>'tag', r.capturado_en DESC
+  `);
+  return res.rows as { observationId: string; fecha: string; alerta: boolean; scores: Record<string, number> | null; cama: number; posicion: number; tag: string }[];
+}

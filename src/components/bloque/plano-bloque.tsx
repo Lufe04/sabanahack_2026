@@ -58,7 +58,7 @@ const suscribirNada = () => () => {};
 type Vista = { k: number; tx: number; ty: number };
 type Seleccion = { tipo: "planta"; cama: number; pos: number; idx: number } | { tipo: "robot"; i: number } | null;
 
-export function PlanoBloque({ plano }: { plano: Plano }) {
+export function PlanoBloque({ plano, enfocar }: { plano: Plano; enfocar?: string | null }) {
   const contenedor = useRef<HTMLDivElement>(null);
   const lienzo = useRef<HTMLCanvasElement>(null);
   const [capa, setCapa] = useState<Capa>("sanidad");
@@ -69,6 +69,7 @@ export function PlanoBloque({ plano }: { plano: Plano }) {
   const [tam, setTam] = useState({ w: 800, h: 520 });
   const [hover, setHover] = useState<Seleccion>(null);
   const [fijo, setFijo] = useState<Seleccion>(null);
+  const [enfocado, setEnfocado] = useState(false);
   const [mouse, setMouse] = useState<{ x: number; y: number } | null>(null);
   const arrastre = useRef<{ x: number; y: number; tx: number; ty: number; movio: boolean } | null>(null);
   const [arrastrando, setArrastrando] = useState(false);
@@ -89,6 +90,30 @@ export function PlanoBloque({ plano }: { plano: Plano }) {
     return r;
   }, [plano]);
 
+  // Capturas del robot por planta (cama:posición), para la ficha de cada planta
+  const capturaDe = useMemo(() => {
+    const m = new Map<string, number>();
+    plano.robot.forEach((r, i) => {
+      if (r.estado !== "captura" || !r.tag) return;
+      const [, c, p] = r.tag.match(/-C(\d+)-P(\d+)$/) ?? [];
+      if (c) m.set(`${Number(c)}:${Number(p)}`, i);
+    });
+    return m;
+  }, [plano]);
+
+  // Planta a enfocar al abrir (desde un enlace de Capturas)
+  const objetivo = useMemo(() => {
+    const m = enfocar?.match(/-C(\d+)-P(\d+)$/);
+    if (!m) return null;
+    const cama = Number(m[1]);
+    const pos = Number(m[2]);
+    const c = plano.camas[cama - 1];
+    if (!c || pos < 1 || pos > c.plantas) return null;
+    let idx = 0;
+    for (let i = 0; i < cama - 1; i++) idx += plano.camas[i].plantas;
+    return { cama, pos, idx: idx + pos - 1, xM: c.xM, yM: plano.y0M + (pos - 1) * 0.75 };
+  }, [enfocar, plano]);
+
   const encuadre = useCallback((w: number, h: number): Vista => {
     const k = Math.min((w - 40) / plano.anchoM, (h - 40) / plano.altoM);
     return { k, tx: (w - plano.anchoM * k) / 2, ty: (h - plano.altoM * k) / 2 };
@@ -102,11 +127,18 @@ export function PlanoBloque({ plano }: { plano: Plano }) {
       const w = Math.round(e.contentRect.width);
       const h = Math.max(380, Math.min(640, Math.round(w * 0.62)));
       setTam({ w, h });
-      setVista((v) => v ?? encuadre(w, h));
+      setVista((v) => {
+        if (v) return v;
+        if (objetivo) {
+          const k = 26; // cerca, con los tags visibles
+          return { k, tx: w / 2 - objetivo.xM * k, ty: h / 2 - (plano.altoM - objetivo.yM) * k };
+        }
+        return encuadre(w, h);
+      });
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, [encuadre]);
+  }, [encuadre, objetivo, plano]);
 
   const aPantalla = useCallback((v: Vista, xM: number, yM: number) => ({ x: v.tx + xM * v.k, y: v.ty + (plano.altoM - yM) * v.k }), [plano]);
   const aMundo = useCallback((v: Vista, x: number, y: number) => ({ xM: (x - v.tx) / v.k, yM: plano.altoM - (y - v.ty) / v.k }), [plano]);
@@ -214,7 +246,7 @@ export function PlanoBloque({ plano }: { plano: Plano }) {
     ctx.globalAlpha = 1;
 
     // Selección
-    const sel = fijo ?? hover;
+    const sel = fijo ?? hover ?? (!enfocado && objetivo ? { tipo: "planta" as const, cama: objetivo.cama, pos: objetivo.pos, idx: objetivo.idx } : null);
     if (sel?.tipo === "planta") {
       const c = plano.camas[sel.cama - 1];
       const p = aPantalla(vista, c.xM, plano.y0M + (sel.pos - 1) * 0.75);
@@ -275,7 +307,7 @@ export function PlanoBloque({ plano }: { plano: Plano }) {
         ctx.rotate(Math.PI / 4);
         ctx.fillStyle = pal.borde;
         ctx.fillRect(-s - 2, -s - 2, (s + 2) * 2, (s + 2) * 2);
-        ctx.fillStyle = r.estado === "reviewed" ? pal.robot : r.estado === "current" ? pal.robot : "#9ca3af";
+        ctx.fillStyle = r.estado === "captura" ? (r.alerta ? pal.severa : pal.robot) : r.estado === "pending" ? "#9ca3af" : pal.robot;
         ctx.fillRect(-s, -s, s * 2, s * 2);
         ctx.restore();
       });
@@ -291,7 +323,7 @@ export function PlanoBloque({ plano }: { plano: Plano }) {
     ctx.fillRect(14, tam.h - 16, largoEscala, 3);
     ctx.textAlign = "left";
     ctx.fillText(`${metros} m`, 14, tam.h - 26);
-  }, [vista, tam, plano, capa, filtroPlaga, verRobot, verSensores, imagenCampo, hover, fijo, inicioCama, aPantalla]);
+  }, [vista, tam, plano, capa, filtroPlaga, verRobot, verSensores, imagenCampo, hover, fijo, inicioCama, aPantalla, enfocado, objetivo]);
 
   // --- Interacción ---
   const buscar = useCallback((x: number, y: number): Seleccion => {
@@ -340,7 +372,8 @@ export function PlanoBloque({ plano }: { plano: Plano }) {
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
 
-  const sel = fijo ?? hover;
+  const selInicial: Seleccion = !enfocado && objetivo ? { tipo: "planta", cama: objetivo.cama, pos: objetivo.pos, idx: objetivo.idx } : null;
+  const sel = fijo ?? hover ?? selInicial;
   const infoPlanta = sel?.tipo === "planta" ? sel : null;
   const infoRobot = sel?.tipo === "robot" ? plano.robot[sel.i] : null;
   const conteos = useMemo(() => {
@@ -372,7 +405,7 @@ export function PlanoBloque({ plano }: { plano: Plano }) {
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-3 text-xs">
-          <label className="inline-flex cursor-pointer items-center gap-1.5"><input id="plano-robot" type="checkbox" checked={verRobot} onChange={(e) => setVerRobot(e.target.checked)} /><Bot className="size-3.5" />Robot ({plano.robot.length})</label>
+          <label className="inline-flex cursor-pointer items-center gap-1.5"><input id="plano-robot" type="checkbox" checked={verRobot} onChange={(e) => setVerRobot(e.target.checked)} /><Bot className="size-3.5" />Robot ({plano.robot.filter((r) => r.estado === "captura").length} capturas{plano.robot.some((r) => r.estado !== "captura") ? ` · ${plano.robot.filter((r) => r.estado !== "captura").length} puntos de ruta` : ""})</label>
           <label className="inline-flex cursor-pointer items-center gap-1.5"><input id="plano-sensores" type="checkbox" checked={verSensores} onChange={(e) => setVerSensores(e.target.checked)} /><Radio className="size-3.5" />Sensores</label>
         </div>
       </div>
@@ -420,7 +453,10 @@ export function PlanoBloque({ plano }: { plano: Plano }) {
             const a = arrastre.current;
             arrastre.current = null;
             setArrastrando(false);
-            if (a && !a.movio) setFijo(buscar(pos(e).x, pos(e).y));
+            if (a && !a.movio) {
+              setFijo(buscar(pos(e).x, pos(e).y));
+              setEnfocado(true);
+            }
           }}
           onPointerLeave={() => {
             setHover(null);
@@ -433,22 +469,34 @@ export function PlanoBloque({ plano }: { plano: Plano }) {
           <button type="button" aria-label="Alejar" onClick={() => zoom(1 / 1.6)} className="flex size-8 items-center justify-center rounded-md border border-border bg-background shadow-sm hover:bg-muted"><Minus className="size-4" /></button>
           <button type="button" aria-label="Ver todo el bloque" onClick={() => setVista(encuadre(tam.w, tam.h))} className="flex size-8 items-center justify-center rounded-md border border-border bg-background shadow-sm hover:bg-muted"><Maximize2 className="size-4" /></button>
         </div>
-        {(infoPlanta || infoRobot) && (fijo || mouse) ? (
+        {(infoPlanta || infoRobot) && (fijo || mouse || selInicial) ? (
           <div
             className="pointer-events-none absolute z-10 max-w-64 rounded-md border border-border bg-popover px-3 py-2 text-xs shadow-md"
-            style={fijo ? { right: 8, top: 8 } : { left: Math.min((mouse?.x ?? 0) + 14, tam.w - 260), top: Math.min((mouse?.y ?? 0) + 14, tam.h - 120) }}
+            style={fijo || (selInicial && !hover) ? { right: 8, top: 8 } : { left: Math.min((mouse?.x ?? 0) + 14, tam.w - 260), top: Math.min((mouse?.y ?? 0) + 14, tam.h - 120) }}
           >
             {infoPlanta ? (
               <>
                 <div className="font-mono font-medium">{plano.bloqueId}-C{String(infoPlanta.cama).padStart(2, "0")}-P{String(infoPlanta.pos).padStart(3, "0")}</div>
                 <div className="text-muted-foreground">Cama {infoPlanta.cama} · planta {infoPlanta.pos} de sur a norte</div>
+                {(() => {
+                  const i = capturaDe.get(`${infoPlanta.cama}:${infoPlanta.pos}`);
+                  const r = i !== undefined ? plano.robot[i] : null;
+                  return r?.scores ? (
+                    <div className="mt-1 rounded bg-muted px-2 py-1">
+                      <div className="font-medium">Última captura del robot{r.alerta ? " · alerta" : ""}</div>
+                      <div className="grid grid-cols-2 gap-x-3">
+                        {Object.entries(r.scores).map(([k, v]) => <span key={k}>{NOMBRE_PLAGA[k] ?? "Sana"} {Math.round(v * 100)}</span>)}
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
                 {capa === "sanidad" ? (
                   plano.afectacion[infoPlanta.idx] >= UMBRAL.leve ? (
                     <div className="mt-1">
-                      <span className="font-medium">{NOMBRE_PLAGA[PLAGAS[plano.plaga[infoPlanta.idx] - 1]]}</span> · afectación {NIVELES.find((n) => n.clave === nivel(plano.afectacion[infoPlanta.idx]))?.etiqueta.toLowerCase()} ({plano.afectacion[infoPlanta.idx]} %)
+                      <span className="text-muted-foreground">Sanidad simulada: </span><span className="font-medium">{NOMBRE_PLAGA[PLAGAS[plano.plaga[infoPlanta.idx] - 1]]}</span> · afectación {NIVELES.find((n) => n.clave === nivel(plano.afectacion[infoPlanta.idx]))?.etiqueta.toLowerCase()} ({plano.afectacion[infoPlanta.idx]} %)
                     </div>
                   ) : (
-                    <div className="mt-1">Sana</div>
+                    <div className="mt-1"><span className="text-muted-foreground">Sanidad simulada: </span>sana</div>
                   )
                 ) : (
                   <div className="mt-1">{CAPAS.find((c) => c.valor === capa)?.etiqueta}: <span className="font-medium">{valorCampo(plano.camas[infoPlanta.cama - 1].xM, plano.y0M + (infoPlanta.pos - 1) * 0.75)} {campoActivo?.unidad}</span></div>
@@ -457,7 +505,9 @@ export function PlanoBloque({ plano }: { plano: Plano }) {
             ) : infoRobot ? (
               <>
                 <div className="font-medium">{infoRobot.etiqueta}</div>
-                <div className="text-muted-foreground">Posición asignada por la app, no GPS medido</div>
+                <div className="text-muted-foreground">
+                  {infoRobot.estado === "captura" ? `Captura del robot${infoRobot.alerta ? " · alerta" : ""}. Ubicación asignada en el MVP: la app aún no envía bloque y cama.` : "Posición asignada por la app, no GPS medido"}
+                </div>
                 {infoRobot.scores ? (
                   <div className="mt-1 grid grid-cols-2 gap-x-3">
                     {Object.entries(infoRobot.scores).map(([k, v]) => <span key={k}>{NOMBRE_PLAGA[k] ?? "Sana"} {Math.round(v * 100)}</span>)}
@@ -494,6 +544,9 @@ export function PlanoBloque({ plano }: { plano: Plano }) {
         ) : null}
         <span>{esTactil ? "Usa + y − para acercar, arrastra para moverte y toca una planta para ver su tag." : "Rueda o doble clic para acercar · arrastra para moverte · clic para fijar una planta"}</span>
       </div>
+      {sel?.tipo === "planta" && capturaDe.has(`${sel.cama}:${sel.pos}`) && plano.robot[capturaDe.get(`${sel.cama}:${sel.pos}`)!].observationId ? (
+        <Link href={`/capturas/${plano.robot[capturaDe.get(`${sel.cama}:${sel.pos}`)!].observationId}`} className="mr-3 text-xs underline">Ver la captura de esta planta</Link>
+      ) : null}
       {fijo?.tipo === "robot" && plano.robot[fijo.i]?.observationId ? (
         <Link href={`/capturas/${plano.robot[fijo.i].observationId}`} className="text-xs underline">Ver la última lectura del robot en ese punto</Link>
       ) : null}

@@ -22,8 +22,9 @@ import { fmtFecha, fmtNum, fmtPct } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function DetalleBloque({ params }: { params: Promise<{ id: string }> }) {
+export default async function DetalleBloque({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ planta?: string }> }) {
   const { id } = await params;
+  const { planta } = await searchParams;
   const datos = await getPlanoBloque(id);
   if (!datos) notFound();
   const { plano, lote } = datos;
@@ -68,7 +69,7 @@ export default async function DetalleBloque({ params }: { params: Promise<{ id: 
           titulo="Plano del bloque"
           descripcion="Cada punto es una planta con su tag. Acércate para ver los números de cama y de planta; cambia de capa para ver dónde está la enfermedad, el calor o la humedad."
         >
-          <PlanoBloque plano={plano} />
+          <PlanoBloque plano={plano} enfocar={planta ?? null} />
         </Seccion>
         <div className="space-y-4">
           <Seccion titulo="Qué hacer en este bloque">

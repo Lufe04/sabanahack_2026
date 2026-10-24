@@ -29,7 +29,18 @@ export type SensorPlano = { id: string; tipo: string; xM: number; yM: number; va
 
 export type Campo = { cols: number; filas: number; valores: number[]; min: number; max: number; unidad: string; fuente: string };
 
-export type PuntoRobot = { xM: number; yM: number; etiqueta: string; estado: string; scores: Record<string, number> | null; observationId: string | null; fecha: string | null };
+export type PuntoRobot = {
+  xM: number;
+  yM: number;
+  etiqueta: string;
+  /** reviewed/current/pending para puntos de un recorrido; "captura" para una lectura ubicada en su planta. */
+  estado: string;
+  scores: Record<string, number> | null;
+  observationId: string | null;
+  fecha: string | null;
+  alerta?: boolean;
+  tag?: string;
+};
 
 export type Plano = {
   bloqueId: string;
@@ -63,6 +74,8 @@ export type EntradaPlano = {
   clima: { temperatura: number | null; humedadAire: number | null; horasHumedadAlta: number | null };
   sensores: { id: string; tipo: string; unidad: string; valor: number | null }[];
   robot?: { lat: number; lng: number; etiqueta: string; estado: string; scores: Record<string, number> | null; observationId: string | null; fecha: string | null }[];
+  /** Capturas del robot ubicadas en una planta (cama y posición). */
+  capturas?: { cama: number; posicion: number; tag: string; scores: Record<string, number> | null; observationId: string; fecha: string; alerta: boolean }[];
 };
 
 /** Umbrales de afectación para clasificar cada planta. */
@@ -105,16 +118,22 @@ function posicionSensor(id: string, anchoM: number, altoM: number) {
   return { xM: anchoM * 0.5, yM: altoM * 0.5 }; // humedad del aire y temperatura: estación central
 }
 
+/** Camas y plantas de un bloque según su contorno y el marco de plantación. */
+export function marcoDe(poligono: [number, number][]) {
+  const { anchoM, altoM } = dimensiones(poligono);
+  const nCamas = Math.max(1, Math.floor((anchoM - 2 * MARCO.bordeM) / MARCO.entreCamasM));
+  const plantasPorCama = Math.max(1, Math.floor((altoM - 2 * MARCO.cabeceraM) / MARCO.entrePlantasM));
+  const x0M = (anchoM - (nCamas - 1) * MARCO.entreCamasM) / 2;
+  const y0M = (altoM - (plantasPorCama - 1) * MARCO.entrePlantasM) / 2;
+  return { anchoM, altoM, nCamas, plantasPorCama, x0M, y0M };
+}
+
 export function construirPlano(e: EntradaPlano): Plano {
   const { anchoM, altoM, aLocal } = dimensiones(e.bloque.poligono);
   const semilla = hash(e.bloque.id);
 
   // --- Camas y plantas ---
-  const nCamas = Math.max(1, Math.floor((anchoM - 2 * MARCO.bordeM) / MARCO.entreCamasM));
-  const x0 = (anchoM - (nCamas - 1) * MARCO.entreCamasM) / 2;
-  const largoCama = altoM - 2 * MARCO.cabeceraM;
-  const plantasPorCama = Math.max(1, Math.floor(largoCama / MARCO.entrePlantasM));
-  const y0M = (altoM - (plantasPorCama - 1) * MARCO.entrePlantasM) / 2;
+  const { nCamas, plantasPorCama, x0M: x0, y0M } = marcoDe(e.bloque.poligono);
   const camas: Cama[] = Array.from({ length: nCamas }, (_, i) => ({ numero: i + 1, xM: x0 + i * MARCO.entreCamasM, plantas: plantasPorCama }));
 
   // --- Focos de cada brote ---
@@ -227,6 +246,21 @@ export function construirPlano(e: EntradaPlano): Plano {
   );
 
   const robot: PuntoRobot[] = (e.robot ?? []).map((p) => ({ ...aLocal(p.lat, p.lng), etiqueta: p.etiqueta, estado: p.estado, scores: p.scores, observationId: p.observationId, fecha: p.fecha }));
+  for (const c of e.capturas ?? []) {
+    const cama = camas[c.cama - 1];
+    if (!cama || c.posicion < 1 || c.posicion > cama.plantas) continue;
+    robot.push({
+      xM: cama.xM,
+      yM: y0M + (c.posicion - 1) * MARCO.entrePlantasM,
+      etiqueta: c.tag,
+      estado: "captura",
+      scores: c.scores,
+      observationId: c.observationId,
+      fecha: c.fecha,
+      alerta: c.alerta,
+      tag: c.tag,
+    });
+  }
 
   const plantas = afectacion.length;
   return {

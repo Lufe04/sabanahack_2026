@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { POST as recibir, GET } from "@/lib/cultivos/servicio";
+import { completarObservaciones } from "@/lib/cultivos/completar";
 
 /**
  * Receptor de la APK Cultivos a bordo (adaptador 0.2.2).
@@ -19,6 +20,11 @@ export async function POST(request: Request) {
     new Request(request.url, { method: "POST", headers: request.headers, body: cuerpo.byteLength ? cuerpo : undefined }),
   );
   await registrarIntento(request, cuerpo, respuesta.clone()).catch((e) => console.error("No se pudo registrar el intento", e));
+  // La app aún no envía bloque ni cama: se completan con la asignación fija del MVP.
+  if (respuesta.status === 200 || respuesta.status === 201) {
+    const ack = (await respuesta.clone().json().catch(() => null)) as { id?: string } | null;
+    if (ack?.id) await completarObservaciones({ id: ack.id }).catch((e) => console.error("No se pudo completar la captura", e));
+  }
   console.log(`POST /api/events -> ${respuesta.status} (${cuerpo.byteLength} bytes)`);
   return respuesta;
 }

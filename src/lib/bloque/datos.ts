@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import type { Enfermedad } from "@/db/schema";
 import { getLotesEstado, type LoteEstado } from "@/lib/queries/lotes";
 import { geojsonRecorridos } from "@/lib/cultivos/servicio";
+import { getCapturasPorPlanta } from "@/lib/queries/cultivos";
 import { construirPlano, type BrotePlano, type Plano, type PlanoResumen } from "./plano";
 
 /** Brotes que pintan el plano: abiertos, o cerrados hace menos de 10 días (recuperándose). */
@@ -40,7 +41,7 @@ function entrada(lote: LoteEstado, brotes: BrotePlano[], sensores: { id: string;
 
 /** Plano completo de un bloque, con los puntos reales del robot encima. */
 export async function getPlanoBloque(loteId: string): Promise<{ plano: Plano; lote: LoteEstado } | null> {
-  const [lotes, brotes, sensores, rutas] = await Promise.all([getLotesEstado(), brotesParaPlano(loteId), ultimasLecturas(loteId), geojsonRecorridos(loteId)]);
+  const [lotes, brotes, sensores, rutas, capturas] = await Promise.all([getLotesEstado(), brotesParaPlano(loteId), ultimasLecturas(loteId), geojsonRecorridos(loteId), getCapturasPorPlanta(loteId)]);
   const lote = lotes.find((l) => l.id === loteId);
   if (!lote) return null;
   const robot = rutas.features
@@ -58,7 +59,7 @@ export async function getPlanoBloque(loteId: string): Promise<{ plano: Plano; lo
         fecha: (p.captured_at as string | null) ?? null,
       };
     });
-  return { plano: construirPlano({ ...entrada(lote, brotes, sensores), robot }), lote };
+  return { plano: construirPlano({ ...entrada(lote, brotes, sensores), robot, capturas }), lote };
 }
 
 export type SanidadBloque = PlanoResumen & {
