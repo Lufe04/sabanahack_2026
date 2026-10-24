@@ -4,7 +4,7 @@ import type { SensorEstado } from "@/lib/queries/sensores";
 import { PARAMS_ENFERMEDAD, ENFERMEDADES_LISTA } from "@/lib/simulador/enfermedades";
 
 export type Prioridad = "alta" | "media" | "baja";
-export type TipoAccion = "inspeccion" | "tratamiento" | "riego" | "drenaje" | "vuelo" | "sensor" | "aplicacion";
+export type TipoAccion = "inspeccion" | "tratamiento" | "riego" | "drenaje" | "sensor" | "aplicacion";
 
 export type Recomendacion = {
   id: string;
@@ -122,19 +122,6 @@ export function generarRecomendaciones(
         loteNombre: l.nombre,
         titulo: `Revisar drenaje en ${l.nombre}`,
         detalle: `Humedad del suelo en ${Math.round(l.humedadSueloProm ?? 0)} %. Suspender riego y revisar canales; el encharcamiento sostiene la humedad del follaje y los hongos.`,
-      });
-    }
-
-    // Vuelos atrasados
-    if (l.diasDesdeVuelo !== null && l.diasDesdeVuelo >= 7) {
-      recs.push({
-        id: `vuelo-${l.id}`,
-        prioridad: l.indiceRiesgo >= 40 ? "alta" : "baja",
-        tipo: "vuelo",
-        loteId: l.id,
-        loteNombre: l.nombre,
-        titulo: `Programar vuelo sobre ${l.nombre}`,
-        detalle: `El último vuelo fue hace ${l.diasDesdeVuelo} días. Sin imágenes recientes no hay forma de confirmar el estado del lote.`,
       });
     }
   }

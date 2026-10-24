@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, Flame, ShieldAlert, Plane, ClipboardList, WifiOff, Activity, Droplets, Waves, Sun } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Flame, ShieldAlert, Bot, ClipboardList, WifiOff, Activity, Droplets, Waves, Sun } from "lucide-react";
 import type { EstadoSuelo } from "@/lib/recomendaciones";
 import { Badge } from "@/components/ui/badge";
 import type { Enfermedad, EstadoEvento } from "@/db/schema";
@@ -32,9 +32,9 @@ export function EstadoEventoBadge({ estado }: { estado: EstadoEvento }) {
   return <Badge variant="outline" className="gap-1 text-muted-foreground"><CheckCircle2 className="size-3" />Cerrado</Badge>;
 }
 
-export function OrigenBadge({ origen }: { origen: "dron" | "inspeccion" }) {
-  return origen === "dron" ? (
-    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Plane className="size-3" />Dron</span>
+export function OrigenBadge({ origen }: { origen: "robot" | "inspeccion" }) {
+  return origen === "robot" ? (
+    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Bot className="size-3" />Robot</span>
   ) : (
     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><ClipboardList className="size-3" />Campo / trampas</span>
   );

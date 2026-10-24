@@ -2,16 +2,14 @@ import type {
   Drenaje,
   Enfermedad,
   NuevaCosecha,
-  NuevaDeteccion,
   NuevaLectura,
   NuevoEvento,
   NuevoLote,
   NuevoResumenDiario,
   NuevoSensor,
-  NuevoVuelo,
 } from "@/db/schema";
 import { Rng, clamp, round, lerp } from "./rng";
-import { FINCA, puntoEnLote } from "./finca";
+import { FINCA } from "./finca";
 import { generarClimaDia, valorEnHora, prom, type ClimaDia } from "./clima";
 import {
   ENFERMEDADES_LISTA,
@@ -34,7 +32,7 @@ export type EventoSim = {
   severidadMax: number;
   areaMax: number;
   fechaDeteccion: string | null;
-  origen: "dron" | "inspeccion" | null;
+  origen: "robot" | "inspeccion" | null;
   tratado: boolean;
 };
 
@@ -42,8 +40,8 @@ export type EstadoLote = {
   humedadSuelo: number;
   humedadSueloAyer: number;
   favor5d: Record<Enfermedad, number[]>;
-  proximoVueloDia: number;
-  ndviBase: number;
+  /** Día en que el robot vuelve a recorrer el lote. */
+  proximaRondaDia: number;
 };
 
 export type EstadoSimulacion = {
@@ -56,16 +54,10 @@ export type EstadoSimulacion = {
   contadorEventos: number;
 };
 
-export type VueloConDetecciones = {
-  vuelo: NuevoVuelo;
-  detecciones: Omit<NuevaDeteccion, "vueloId">[];
-};
-
 export type SalidaDia = {
   fecha: string;
   clima: ClimaDia;
   lecturas: NuevaLectura[];
-  vuelos: VueloConDetecciones[];
   resumen: NuevoResumenDiario[];
   cosechas: NuevaCosecha[];
 };
@@ -101,14 +93,6 @@ const PARAMS_SUELO: Record<Drenaje, { infiltracion: number; capacidad: number; r
   bueno: { infiltracion: 0.35, capacidad: 42, retencion: 0.3, etFactor: 1.0 },
   regular: { infiltracion: 0.45, capacidad: 48, retencion: 0.55, etFactor: 0.9 },
   malo: { infiltracion: 0.6, capacidad: 55, retencion: 0.75, etFactor: 0.75 },
-};
-
-const NDVI_BASE_VARIEDAD: Record<string, number> = {
-  Biloxi: 0.74,
-  Legacy: 0.72,
-  Sharpblue: 0.7,
-  Emerald: 0.73,
-  Ventura: 0.71,
 };
 
 // ---------- Utilidades de fecha ----------
@@ -147,8 +131,7 @@ export function estadoInicial(lotes: NuevoLote[], rng: Rng, inicio: Date): Estad
       humedadSuelo: rng.uniform(32, 40),
       humedadSueloAyer: 36,
       favor5d,
-      proximoVueloDia: rng.int(0, 4),
-      ndviBase: (NDVI_BASE_VARIEDAD[lote.variedad] ?? 0.72) + rng.normal(0, 0.015),
+      proximaRondaDia: rng.int(0, 3),
     };
   }
   return { inicio: isoFecha(inicio), dia: 0, anomaliaTermica: 0, lotes: estadoLotes, eventos: [], contadorEventos: 0 };
@@ -204,12 +187,11 @@ export function simularDia(
   const fechaIso = isoFecha(fecha);
   const clima = generarClimaDia(fecha, rng, estado.anomaliaTermica);
   // Ruido de sensores con generador aparte: así la calibración sin lecturas
-  // produce exactamente los mismos brotes y vuelos que la carga completa.
+  // produce exactamente los mismos brotes y rondas que la carga completa.
   const rngS = rng.fork();
   estado.anomaliaTermica = clima.tempProm - 13.4;
 
   const lecturas: NuevaLectura[] = [];
-  const vuelos: VueloConDetecciones[] = [];
   const resumen: NuevoResumenDiario[] = [];
   const cosechas: NuevaCosecha[] = [];
   const esLunes = fecha.getUTCDay() === 1;
@@ -270,7 +252,7 @@ export function simularDia(
       }
     }
 
-    // --- Inspección manual: detecta brotes que el dron no ha visto ---
+    // --- Inspección manual: detecta brotes que el robot no ha visto ---
     for (const ev of activosLote) {
       if (ev.fechaDeteccion) continue;
       const edad = dia - ev.diaInicio;
@@ -282,54 +264,24 @@ export function simularDia(
       }
     }
 
-    // --- Vuelo de dron ---
-    let ndviHoy: number | null = null;
-    if (dia >= el.proximoVueloDia) {
+    // --- Ronda del robot con cámara ---
+    // El robot recorre el lote a la altura de la planta cada 2 a 4 días. Con lluvia
+    // fuerte se pospone. Detecta un brote con probabilidad creciente según su severidad
+    // y qué tan visible es la plaga para una cámara cercana.
+    if (dia >= el.proximaRondaDia) {
       if (clima.lluviaMm > 15 && rng.chance(0.8)) {
-        el.proximoVueloDia = dia + 1; // se pospone por lluvia
+        el.proximaRondaDia = dia + 1;
       } else {
-        const sevTotal = activosLote.reduce((a, ev) => a + severidadActual(ev, dia) * intensidad(ev, dia), 0);
-        const areaTotal = activosLote.reduce((a, ev) => a + areaActual(ev, dia), 0);
-        const estresHidrico = hs < 24 ? (24 - hs) * 0.01 : 0;
-        const estacional = 0.015 * Math.sin((2 * Math.PI * (fecha.getUTCMonth() - 2)) / 12);
-        const ndvi = clamp(el.ndviBase + estacional - 0.035 * sevTotal - estresHidrico + rng.normal(0, 0.012), 0.3, 0.92);
-        ndviHoy = round(ndvi, 3);
-        const horaVuelo = rng.uniform(7.5, 11);
-        const vuelo: NuevoVuelo = {
-          loteId: lote.id,
-          dronId: rng.chance(0.6) ? "DJI-M3M-01" : "DJI-M3M-02",
-          fecha: tsLocal(fecha, horaVuelo),
-          duracionMin: round(8 + lote.hectareas * 6 + rng.uniform(-1.5, 1.5), 1),
-          coberturaPct: round(clamp(rng.normal(97.5, 1.8) - (clima.lluviaMm > 5 ? 3 : 0), 85, 100), 1),
-          ndvi: ndviHoy,
-          ndviMin: round(clamp(ndvi - 0.12 - 0.04 * sevTotal - rng.uniform(0, 0.05), 0.1, ndvi), 3),
-          areaAnomalaPct: round(clamp(areaTotal * rng.uniform(0.8, 1.2) + rng.uniform(0, 1.2), 0, 100), 2),
-          imagenUrl: `/vuelos/${lote.id}/${fechaIso}.jpg`,
-        };
-        const detecciones: Omit<NuevaDeteccion, "vueloId">[] = [];
         for (const ev of activosLote) {
+          if (ev.fechaDeteccion) continue;
           const sev = severidadActual(ev, dia);
-          const vis = PARAMS_ENFERMEDAD[ev.enfermedad].visibilidadDron;
-          const pDet = (ev.fechaDeteccion ? 0.9 : 0.3 + 0.14 * sev) * vis;
+          const pDet = (0.35 + 0.12 * sev) * PARAMS_ENFERMEDAD[ev.enfermedad].visibilidadRobot;
           if (!rng.chance(pDet)) continue;
-          if (!ev.fechaDeteccion) {
-            ev.fechaDeteccion = fechaIso;
-            ev.origen = "dron";
-            aplicarTratamiento(ev, dia);
-          }
-          const pt = puntoEnLote(lote.poligono, rng.uniform(0.1, 0.9), rng.uniform(0.1, 0.9));
-          detecciones.push({
-            loteId: lote.id,
-            enfermedad: ev.enfermedad,
-            severidad: sev,
-            plantasAfectadasPct: round(clamp(areaActual(ev, dia) * rng.uniform(0.85, 1.15), 0.2, 100), 2),
-            lat: round(pt.lat, 6),
-            lng: round(pt.lng, 6),
-            confianza: round(clamp(0.55 + 0.08 * sev + rng.normal(0, 0.05), 0.5, 0.98), 3),
-          });
+          ev.fechaDeteccion = fechaIso;
+          ev.origen = "robot";
+          aplicarTratamiento(ev, dia);
         }
-        vuelos.push({ vuelo, detecciones });
-        el.proximoVueloDia = dia + rng.int(4, 6);
+        el.proximaRondaDia = dia + rng.int(2, 4);
       }
     }
 
@@ -406,7 +358,6 @@ export function simularDia(
       tempMax: round(clima.tempMax, 1),
       horasHumedadAlta: clima.horasHumedadAlta,
       lluviaMm: clima.lluviaMm,
-      ndvi: ndviHoy,
       eventosActivos: activosLote.filter((ev) => ev.fechaDeteccion).length,
       indiceRiesgo: indiceRiesgo(hazards),
       riesgoPorPlaga: riesgoPorPlaga(hazardsPorPlaga),
@@ -414,7 +365,7 @@ export function simularDia(
   }
 
   estado.dia += 1;
-  return { fecha: fechaIso, clima, lecturas, vuelos, resumen, cosechas };
+  return { fecha: fechaIso, clima, lecturas, resumen, cosechas };
 }
 
 // ---------- Conversión de eventos a filas ----------

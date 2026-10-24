@@ -88,7 +88,7 @@ export type ResumenEnfermedad = {
   duracionProm: number;
   areaProm: number;
   lotesAfectados: number;
-  pctDron: number;
+  pctRobot: number;
 };
 
 export async function getResumenEnfermedades(): Promise<ResumenEnfermedad[]> {
@@ -100,7 +100,7 @@ export async function getResumenEnfermedades(): Promise<ResumenEnfermedad[]> {
            round(avg(coalesce(fecha_fin, current_date) - fecha_inicio)::numeric, 0)::float AS "duracionProm",
            round(avg(area_afectada_pct)::numeric, 1)::float AS "areaProm",
            count(DISTINCT lote_id)::int AS "lotesAfectados",
-           round(100.0 * sum((origen = 'dron')::int) / count(*), 0)::float AS "pctDron"
+           round(100.0 * sum((origen = 'robot')::int) / count(*), 0)::float AS "pctRobot"
     FROM eventos_enfermedad GROUP BY enfermedad ORDER BY brotes DESC
   `);
   return res.rows as ResumenEnfermedad[];
@@ -188,9 +188,7 @@ export type KpisGenerales = {
   lotesRiesgoAlto: number;
   sensoresActivos: number;
   sensoresCaidos: number;
-  vuelos7d: number;
-  ndviProm: number | null;
-  pctDeteccionDron: number;
+  pctDeteccionRobot: number;
   diasDeteccionProm: number | null;
 };
 
@@ -205,9 +203,6 @@ export async function getKpis(): Promise<KpisGenerales> {
       SELECT s.id, s.activo, max(le.ts) AS ts
       FROM sensores s LEFT JOIN lecturas le ON le.sensor_id = s.id AND le.ts <= now()
       GROUP BY s.id, s.activo
-    ),
-    ndvi AS (
-      SELECT DISTINCT ON (lote_id) lote_id, ndvi FROM vuelos_dron WHERE fecha <= now() ORDER BY lote_id, fecha DESC
     )
     SELECT
       (SELECT count(*)::int FROM lotes) AS lotes,
@@ -219,9 +214,7 @@ export async function getKpis(): Promise<KpisGenerales> {
       (SELECT count(*)::int FROM ultimo WHERE indice_riesgo >= 40) AS "lotesRiesgoAlto",
       (SELECT count(*)::int FROM ult_lectura WHERE ts >= now() - interval '6 hours') AS "sensoresActivos",
       (SELECT count(*)::int FROM ult_lectura WHERE ts IS NULL OR ts < now() - interval '6 hours') AS "sensoresCaidos",
-      (SELECT count(*)::int FROM vuelos_dron WHERE fecha >= now() - interval '7 days' AND fecha <= now()) AS "vuelos7d",
-      (SELECT round(avg(ndvi)::numeric, 2)::float FROM ndvi) AS "ndviProm",
-      (SELECT coalesce(round(100.0 * sum((origen = 'dron')::int) / nullif(count(*), 0), 0), 0)::float FROM eventos_enfermedad) AS "pctDeteccionDron",
+      (SELECT coalesce(round(100.0 * sum((origen = 'robot')::int) / nullif(count(*), 0), 0), 0)::float FROM eventos_enfermedad) AS "pctDeteccionRobot",
       (SELECT round(avg(fecha_deteccion - fecha_inicio)::numeric, 1)::float FROM eventos_enfermedad) AS "diasDeteccionProm"
   `);
   return res.rows[0] as KpisGenerales;

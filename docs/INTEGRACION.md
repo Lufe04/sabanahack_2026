@@ -1,6 +1,6 @@
 # Integración: envío de capturas al dashboard de arándanos
 
-Guía para el sistema que procesa los vuelos del dron (o los sensores) y envía sus resultados al dashboard.
+Guía para los sistemas que envían datos al dashboard: la app del robot con cámara y los sensores.
 
 ## 1. Tecnología
 
@@ -21,7 +21,6 @@ Los endpoints de `/api/ingesta` y `/api/lotes` están probados en producción. `
 
 | Método | Ruta | Qué recibe | Auth |
 |---|---|---|---|
-| `POST` | `/api/ingesta/vuelos` | Un vuelo de dron con sus detecciones | Sí |
 | `POST` | `/api/ingesta/lecturas` | Lote de lecturas de sensores (hasta 5000) | Sí |
 | `POST` | `/api/events` | Observaciones y estados de recorrido de la APK Cultivos a bordo 0.2.2 | Sí |
 | `GET` | `/api/events?after=0&lote=L01` | Consulta entre servidores, hasta 100 registros con cursor | Clave de lectura |
@@ -77,91 +76,7 @@ Para que el equipo de la APK los lleve a su versión:
 - `npm run test:adaptador`: las 18 pruebas originales del adaptador, sin cambios, más la del cursor. Usan PGlite.
 - `npm run probar:apk`: envía por HTTP los JSON de Android a un servidor real y revisa respuestas, reintentos, el feed GeoJSON y las fotos. Variables: `BASE_URL`, `INGEST_API_KEY`, `READ_KEY`.
 
-## 5. `POST /api/ingesta/vuelos`
-
-Un llamado por vuelo y por lote. Las imágenes **no** se suben a este endpoint: se envía la URL donde ya están alojadas en `imagenUrl`.
-
-### Cuerpo
-
-```json
-{
-  "loteId": "L04",
-  "dronId": "DJI-M3M-01",
-  "fecha": "2026-10-24T13:30:00Z",
-  "duracionMin": 18.5,
-  "coberturaPct": 97.2,
-  "ndvi": 0.68,
-  "ndviMin": 0.51,
-  "areaAnomalaPct": 6.4,
-  "imagenUrl": "https://almacen.ejemplo.com/vuelos/L04/2026-10-24.jpg",
-  "detecciones": [
-    {
-      "enfermedad": "botrytis",
-      "severidad": 3,
-      "plantasAfectadasPct": 7.5,
-      "lat": 4.98965,
-      "lng": -73.89782,
-      "confianza": 0.87
-    }
-  ]
-}
-```
-
-| Campo | Tipo | Regla |
-|---|---|---|
-| `loteId` | string | Debe existir: `L01` a `L10` |
-| `dronId` | string | Libre, no vacío |
-| `fecha` | string ISO 8601 | Instante del vuelo, con zona (`Z` o `-05:00`) |
-| `duracionMin` | número | ≥ 0 |
-| `coberturaPct` | número | 0 a 100, porcentaje del lote cubierto |
-| `ndvi` | número | -1 a 1, promedio del lote |
-| `ndviMin` | número | -1 a 1, zona más débil |
-| `areaAnomalaPct` | número | 0 a 100, área marcada como anómala |
-| `imagenUrl` | string URL o `null` | Opcional |
-| `detecciones` | arreglo | Opcional, por defecto vacío |
-| `detecciones[].enfermedad` | enum | `trips`, `botrytis` o `alternaria` |
-| `detecciones[].severidad` | entero | 1 (leve) a 5 (crítica) |
-| `detecciones[].plantasAfectadasPct` | número | 0 a 100 |
-| `detecciones[].lat`, `lng` | número | Coordenadas WGS84 del punto detectado |
-| `detecciones[].confianza` | número | 0 a 1, confianza del modelo de visión |
-
-### Respuestas
-
-`201 Created`
-
-```json
-{ "ok": true, "vueloId": 354, "detecciones": 1 }
-```
-
-`401` sin token o token inválido
-
-```json
-{ "error": "No autorizado" }
-```
-
-`400` cuerpo inválido. Ejemplo con una enfermedad no soportada:
-
-```json
-{
-  "error": "Body inválido",
-  "detalle": {
-    "formErrors": [],
-    "fieldErrors": { "detecciones": ["Invalid option: expected one of \"trips\"|\"botrytis\"|\"alternaria\""] }
-  }
-}
-```
-
-`422` lote inexistente
-
-```json
-{
-  "error": "Lote desconocido",
-  "loteId": "L99",
-  "lotesValidos": ["L01", "L02", "L03", "L04", "L05", "L06", "L07", "L08", "L09", "L10"]
-}
-```
-
-## 6. `POST /api/ingesta/lecturas`
+## 5. `POST /api/ingesta/lecturas`
 
 ### Cuerpo
 
@@ -190,25 +105,24 @@ IDs de sensor: `<lote>-<tipo>-<n>`. Tipos: `HS` humedad del suelo (%), `HA` hume
 { "error": "Sensores desconocidos", "desconocidos": ["L04-XX-9"] }
 ```
 
-`400` y `401` con el mismo formato que en vuelos.
+`400` cuando el cuerpo no cumple las reglas y `401` sin token, con el formato `{ "error": "…" }`.
 
-## 7. Ejemplo completo
+## 6. Ejemplo completo
 
 ```bash
-curl -X POST https://arandanos-dashboard.vercel.app/api/ingesta/vuelos \
+curl -X POST https://arandanos-dashboard.vercel.app/api/ingesta/lecturas \
   -H "Authorization: Bearer $INGEST_API_KEY" \
   -H "Content-Type: application/json" \
-  -d @vuelo.json
+  -d '{"lecturas":[{"sensorId":"L04-HS-1","ts":"2026-10-24T13:30:00Z","valor":57.3}]}'
 ```
 
-## 8. Comportamiento a tener en cuenta
+## 7. Comportamiento a tener en cuenta
 
-- **Sin idempotencia.** Reenviar el mismo vuelo crea un vuelo duplicado. Reintentar solo ante errores de red o respuestas 5xx, no ante 4xx.
-- **Transaccional.** Un vuelo y sus detecciones se guardan juntos o no se guarda nada.
-- **Visible de inmediato.** El dashboard no usa caché: un vuelo aparece en la siguiente carga de la página.
+- **Lecturas de sensores sin idempotencia.** Reenviar las mismas lecturas las duplica. El robot sí es idempotente por UUID en `/api/events`.
+- **Visible de inmediato.** El dashboard no usa caché: un dato aparece en la siguiente carga de la página.
 - **Datos simulados.** Mientras el MVP use el simulador, un cron diario sigue agregando datos a la misma base. Al conectar datos reales se desactiva quitando el cron de `vercel.json`.
 - **Límite de cuerpo:** 4,5 MB por petición en las funciones de Vercel.
 
-## 9. Acceso directo a PostgreSQL
+## 8. Acceso directo a PostgreSQL
 
 No se recomienda escribir directo en la base: la API valida y mantiene la consistencia. Si otro componente necesita leer, se le puede dar una rama de Neon o un rol de solo lectura. El esquema completo está en `src/db/schema.ts`.

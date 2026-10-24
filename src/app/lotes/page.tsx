@@ -30,7 +30,7 @@ export default async function Lotes() {
               </div>
               <dl className="grid grid-cols-3 gap-2 text-xs">
                 <div><dt className="text-muted-foreground">Hum. suelo</dt><dd className="tabular-nums">{fmtPct(l.humedadSueloProm, 0)}</dd></div>
-                <div><dt className="text-muted-foreground">NDVI</dt><dd className="tabular-nums">{fmtNum(l.ndvi, 2)}</dd></div>
+                <div><dt className="text-muted-foreground">Brotes abiertos</dt><dd className="tabular-nums">{l.eventosActivos}</dd></div>
                 <div><dt className="text-muted-foreground">Brotes 90 d</dt><dd className="tabular-nums">{l.brotes90d}</dd></div>
               </dl>
               <div className="text-[11px] text-muted-foreground">Sembrado {fmtFecha(l.fechaSiembra, "MMM yyyy")}</div>

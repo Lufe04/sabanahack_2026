@@ -1,8 +1,8 @@
-import { sql, desc, eq, and, gte, lte } from "drizzle-orm";
+import { sql, eq, and, gte, lte } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import type { Enfermedad, EstadoEvento } from "@/db/schema";
 
-const { lotes, resumenDiarioLote, eventosEnfermedad, vuelosDron, detecciones, lecturas, sensores } = schema;
+const { lotes, resumenDiarioLote, eventosEnfermedad, lecturas, sensores } = schema;
 
 /** El driver devuelve timestamptz como texto; lo normalizamos a ISO 8601 en UTC. */
 export const iso = (col: ReturnType<typeof sql.raw>) => sql`to_char(${col} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`;
@@ -24,11 +24,8 @@ export type LoteEstado = {
   humedadAireProm: number | null;
   tempProm: number | null;
   horasHumedadAlta: number | null;
-  ndvi: number | null;
   eventosActivos: number;
   brotes90d: number;
-  ultimoVuelo: string | null;
-  diasDesdeVuelo: number | null;
   lluviaMm: number | null;
   tempMin: number | null;
   tempMax: number | null;
@@ -41,11 +38,6 @@ export async function getLotesEstado(): Promise<LoteEstado[]> {
     WITH ultimo AS (
       SELECT DISTINCT ON (lote_id) *
       FROM resumen_diario_lote
-      ORDER BY lote_id, fecha DESC
-    ),
-    ndvi AS (
-      SELECT DISTINCT ON (lote_id) lote_id, ndvi, fecha
-      FROM vuelos_dron WHERE fecha <= now()
       ORDER BY lote_id, fecha DESC
     ),
     activos AS (
@@ -68,15 +60,11 @@ export async function getLotesEstado(): Promise<LoteEstado[]> {
            u.humedad_aire_prom AS "humedadAireProm",
            u.temp_prom AS "tempProm",
            u.horas_humedad_alta AS "horasHumedadAlta",
-           n.ndvi,
            coalesce(a.n, 0) AS "eventosActivos",
            coalesce(r.n, 0) AS "brotes90d",
-           ${iso(sql.raw("n.fecha"))} AS "ultimoVuelo",
-           (current_date - n.fecha::date)::int AS "diasDesdeVuelo",
            u.lluvia_mm AS "lluviaMm", u.temp_min AS "tempMin", u.temp_max AS "tempMax"
     FROM lotes l
     LEFT JOIN ultimo u ON u.lote_id = l.id
-    LEFT JOIN ndvi n ON n.lote_id = l.id
     LEFT JOIN activos a ON a.lote_id = l.id
     LEFT JOIN recientes r ON r.lote_id = l.id
     ORDER BY l.id
@@ -98,7 +86,6 @@ export type PuntoDiario = {
   tempMax: number | null;
   horasHumedadAlta: number | null;
   lluviaMm: number | null;
-  ndvi: number | null;
   indiceRiesgo: number;
   eventosActivos: number;
 };
@@ -112,7 +99,7 @@ export async function getSerieDiariaLote(loteId: string, dias = 90): Promise<Pun
            humedad_aire_prom AS "humedadAireProm",
            temp_prom AS "tempProm", temp_min AS "tempMin", temp_max AS "tempMax",
            horas_humedad_alta AS "horasHumedadAlta",
-           lluvia_mm AS "lluviaMm", ndvi, indice_riesgo AS "indiceRiesgo",
+           lluvia_mm AS "lluviaMm", indice_riesgo AS "indiceRiesgo",
            eventos_activos AS "eventosActivos"
     FROM resumen_diario_lote
     WHERE lote_id = ${loteId} AND fecha >= current_date - ${dias}::int
@@ -165,7 +152,7 @@ export type EventoFila = {
   fechaFin: string | null;
   severidadMax: number;
   areaAfectadaPct: number;
-  origen: "dron" | "inspeccion";
+  origen: "robot" | "inspeccion";
   estado: EstadoEvento;
   tratamiento: string | null;
   diasDeteccion: number | null;
@@ -187,40 +174,6 @@ export async function getEventos(opts: { loteId?: string; soloAbiertos?: boolean
     ${opts.limite ? sql`LIMIT ${opts.limite}` : sql``}
   `);
   return res.rows as EventoFila[];
-}
-
-export async function getVuelosLote(loteId: string, limite = 60) {
-  const db = getDb();
-  const filas = await db
-    .select()
-    .from(vuelosDron)
-    .where(and(eq(vuelosDron.loteId, loteId), lte(vuelosDron.fecha, sql`now()`)))
-    .orderBy(desc(vuelosDron.fecha))
-    .limit(limite);
-  return filas.reverse();
-}
-
-export async function getDeteccionesLote(loteId: string, limite = 40) {
-  const db = getDb();
-  const res = await db.execute(sql`
-    SELECT d.id, d.enfermedad, d.severidad, d.plantas_afectadas_pct AS "plantasAfectadasPct",
-           d.lat, d.lng, d.confianza, ${iso(sql.raw("v.fecha"))} AS fecha, v.dron_id AS "dronId"
-    FROM detecciones d JOIN vuelos_dron v ON v.id = d.vuelo_id
-    WHERE d.lote_id = ${loteId} AND v.fecha <= now()
-    ORDER BY v.fecha DESC
-    LIMIT ${limite}
-  `);
-  return res.rows as {
-    id: number;
-    enfermedad: Enfermedad;
-    severidad: number;
-    plantasAfectadasPct: number;
-    lat: number;
-    lng: number;
-    confianza: number;
-    fecha: string;
-    dronId: string;
-  }[];
 }
 
 /** Lecturas crudas de un lote en las últimas `horas` horas, por sensor. */
@@ -246,14 +199,4 @@ export async function getLecturasRecientesLote(loteId: string, horas = 48) {
   return filas;
 }
 
-export async function getUltimoVuelo() {
-  const db = getDb();
-  const res = await db.execute(sql`
-    SELECT ${iso(sql.raw("v.fecha"))} AS fecha, l.nombre AS "loteNombre", v.lote_id AS "loteId"
-    FROM vuelos_dron v JOIN lotes l ON l.id = v.lote_id
-    WHERE v.fecha <= now() ORDER BY v.fecha DESC LIMIT 1
-  `);
-  return res.rows[0] as { fecha: string; loteNombre: string; loteId: string } | undefined;
-}
-
-export { detecciones, eventosEnfermedad, resumenDiarioLote };
+export { eventosEnfermedad, resumenDiarioLote };

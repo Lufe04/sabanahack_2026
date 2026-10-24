@@ -2,7 +2,7 @@
 import { generarHistorial } from "../src/lib/simulador";
 
 const h = generarHistorial({ conLecturas: false, seed: Number(process.env.SEED ?? 7) });
-console.log(`Vuelos: ${h.vuelos.length}, eventos detectados: ${h.eventos.length}, brotes totales: ${h.estado.eventos.length}`);
+console.log(`Brotes detectados: ${h.eventos.length}, brotes totales: ${h.estado.eventos.length}`);
 
 const porLote: Record<string, number> = {};
 const porEnf: Record<string, number> = {};
@@ -33,8 +33,6 @@ console.log(
 );
 const horas = h.resumen.filter((r) => r.loteId === "L01").map((r) => r.horasHumedadAlta ?? 0);
 console.log("Horas humedad alta prom L01:", (horas.reduce((a, b) => a + b, 0) / horas.length).toFixed(1));
-const ndvi = h.vuelos.map((v) => v.vuelo.ndvi);
-console.log("NDVI min/max:", Math.min(...ndvi), Math.max(...ndvi));
 
 const kg = h.cosechas.reduce((a, c) => a + c.kgCosechados, 0);
 const desc = h.cosechas.reduce((a, c) => a + c.kgDescartados, 0);

@@ -8,7 +8,7 @@ export const maxDuration = 120;
 
 /**
  * GET /api/cron/simular-dia
- * Avanza el simulador un día: genera lecturas, vuelos, brotes y resumen del
+ * Avanza el simulador un día: genera lecturas de sensores, rondas del robot, brotes y resumen del
  * día siguiente al último simulado. Vercel Cron lo llama cada madrugada; en
  * producción real este endpoint desaparece y los datos llegan por /api/ingesta.
  */
@@ -57,11 +57,6 @@ async function simularUnDia() {
     for (let i = 0; i < salida.lecturas.length; i += 4000) {
       await tx.insert(schema.lecturas).values(salida.lecturas.slice(i, i + 4000));
     }
-    if (salida.vuelos.length) {
-      const ids = await tx.insert(schema.vuelosDron).values(salida.vuelos.map((v) => v.vuelo)).returning({ id: schema.vuelosDron.id });
-      const det = salida.vuelos.flatMap((v, i) => v.detecciones.map((d) => ({ ...d, vueloId: ids[i].id })));
-      if (det.length) await tx.insert(schema.detecciones).values(det);
-    }
     if (salida.cosechas.length) await tx.insert(schema.cosechas).values(salida.cosechas);
     await tx
       .insert(schema.resumenDiarioLote)
@@ -98,7 +93,6 @@ async function simularUnDia() {
     alDia: false,
     fecha: salida.fecha,
     lecturas: salida.lecturas.length,
-    vuelos: salida.vuelos.length,
     cosechas: salida.cosechas.length,
   };
 }

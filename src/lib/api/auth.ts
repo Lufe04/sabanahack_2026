@@ -22,7 +22,7 @@ export function verificarClave(req: Request, variable: "INGEST_API_KEY" | "DASHB
   return null;
 }
 
-/** Autenticación de la API de ingesta (dron, sensores, APK). */
+/** Autenticación de la API de ingesta (sensores y APK del robot). */
 export function verificarApiKey(req: Request): NextResponse | null {
   return verificarClave(req, "INGEST_API_KEY");
 }

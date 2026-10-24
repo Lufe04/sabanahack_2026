@@ -2,29 +2,30 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Encabezado, Seccion } from "@/components/dashboard/encabezado";
 import { Kpi } from "@/components/dashboard/kpi";
-import { RiesgoBadge, EnfermedadBadge, Severidad, SueloBadge } from "@/components/dashboard/badges";
+import { RiesgoBadge, SueloBadge } from "@/components/dashboard/badges";
 import { ListaAcciones } from "@/components/dashboard/acciones";
 import { generarRecomendaciones, estadoSuelo } from "@/lib/recomendaciones";
 import { ENFERMEDADES_LISTA, PARAMS_ENFERMEDAD } from "@/lib/simulador/enfermedades";
 import { COLOR_ENFERMEDAD, NOMBRE_ENFERMEDAD, nivelRiesgo, COLOR_RIESGO } from "@/lib/viz/palette";
 import { getSensoresEstado } from "@/lib/queries/sensores";
 import { geojsonRecorridos } from "@/lib/cultivos/servicio";
+import { getCapturas, getRecorridos, getResumenCapturas } from "@/lib/queries/cultivos";
+import { Puntuacion4 } from "@/components/dashboard/puntuaciones";
+import { DistintivoSimulado, FaseRecorrido, Progreso } from "@/components/dashboard/fase-recorrido";
 import { MapaLotesLazy } from "@/components/dashboard/mapa-lotes-lazy";
 import { TablaEventos } from "@/components/dashboard/tabla-eventos";
 import { SerieTiempo } from "@/components/charts/serie-tiempo";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  getDeteccionesLote,
   getEventos,
   getLecturasRecientesLote,
   getLotesEstado,
   getSerieDiariaLote,
-  getVuelosLote,
 } from "@/lib/queries/lotes";
 import { getRankingLotes } from "@/lib/queries/analitica";
 import { COLOR_SENSOR } from "@/lib/viz/palette";
-import { fmtFecha, fmtFechaHora, fmtNum, fmtPct } from "@/lib/format";
+import { fmtFecha, fmtNum } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -34,27 +35,20 @@ export default async function DetalleLote({ params }: { params: Promise<{ id: st
   const lote = lotes.find((l) => l.id === id);
   if (!lote) notFound();
 
-  const [serie, vuelos, detecciones, eventos, lecturas, ranking, sensores, rutas] = await Promise.all([
+  const [serie, eventos, lecturas, ranking, sensores, rutas, capturas, resumenRobot, recorridos] = await Promise.all([
     getSerieDiariaLote(id, 90),
-    getVuelosLote(id),
-    getDeteccionesLote(id),
     getEventos({ loteId: id }),
     getLecturasRecientesLote(id, 48),
     getRankingLotes(),
     getSensoresEstado(),
     geojsonRecorridos(id),
+    getCapturas({ lote: id }, 20),
+    getResumenCapturas({ lote: id }),
+    getRecorridos({ lote: id }),
   ]);
   const acciones = generarRecomendaciones([lote], eventos.filter((e) => e.estado !== "cerrado"), sensores.filter((s) => s.loteId === id));
   const stats = ranking.find((r) => r.loteId === id);
   const posicion = ranking.findIndex((r) => r.loteId === id) + 1;
-
-  const vuelosSerie = vuelos.map((v) => ({ fecha: v.fecha.toISOString(), ndvi: v.ndvi, ndviMin: v.ndviMin, areaAnomalaPct: v.areaAnomalaPct }));
-  // Detecciones por vuelo, agrupadas por el instante del vuelo
-  const detPorFecha = new Map<number, number>();
-  for (const d of detecciones) {
-    const k = new Date(d.fecha).getTime();
-    detPorFecha.set(k, (detPorFecha.get(k) ?? 0) + 1);
-  }
 
   const crudas = pivotarLecturas(lecturas);
 
@@ -73,7 +67,7 @@ export default async function DetalleLote({ params }: { params: Promise<{ id: st
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         <Kpi etiqueta="Humedad del suelo" valor={fmtNum(lote.humedadSueloProm, 0)} unidad="%" detalle={<SueloBadge estado={estadoSuelo(lote.humedadSueloProm)} valor={null} />} />
         <Kpi etiqueta="Humedad del aire" valor={fmtNum(lote.humedadAireProm, 0)} unidad="%" detalle={`${fmtNum(lote.horasHumedadAlta, 0)} h sobre 85 %`} />
-        <Kpi etiqueta="Vigor (NDVI)" valor={fmtNum(lote.ndvi, 2)} detalle={vuelos.length ? `vuelo del ${fmtFecha(vuelos[vuelos.length - 1].fecha)}` : "sin vuelos"} />
+        <Kpi etiqueta="Capturas reales del robot" valor={fmtNum(resumenRobot.lecturasReales)} detalle={resumenRobot.ultima ? `última: ${fmtFecha(resumenRobot.ultima, "d MMM, HH:mm")}` : "todavía sin capturas"} />
         <Kpi etiqueta="Brotes abiertos" valor={lote.eventosActivos} detalle={`${stats?.brotes ?? 0} en total`} />
         <Kpi etiqueta="Cada cuánto se enferma" valor={stats?.diasEntreBrotes ? fmtNum(stats.diasEntreBrotes, 0) : "—"} unidad={stats?.diasEntreBrotes ? "días" : undefined} detalle="promedio entre brotes" />
         <Kpi etiqueta="Ranking de incidencia" valor={`#${posicion}`} detalle={`de ${ranking.length} lotes · ${fmtNum(stats?.brotesPorHa, 1)} brotes/ha`} tono={posicion <= 2 ? "malo" : "neutro"} />
@@ -106,13 +100,12 @@ export default async function DetalleLote({ params }: { params: Promise<{ id: st
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <Seccion titulo="Detecciones y recorridos" descripcion="Círculos de color: detecciones simuladas del dron. Líneas y puntos: recorridos que envía la app.">
+        <Seccion titulo="Recorridos del robot" descripcion="Rutas y puntos que envía la app del robot sobre este lote. Se actualiza cada 10 segundos.">
           <MapaLotesLazy
             lotes={[lote]}
             centro={{ lat: lote.centroLat, lng: lote.centroLng }}
             zoom={19}
             alto={300}
-            detecciones={detecciones.map((d) => ({ lat: d.lat, lng: d.lng, enfermedad: d.enfermedad, severidad: d.severidad }))}
             interactivo={false}
             recorridos={{ inicial: rutas, url: `/recorridos/geojson?lote=${id}` }}
           />
@@ -136,7 +129,7 @@ export default async function DetalleLote({ params }: { params: Promise<{ id: st
       <Tabs defaultValue="sensores" className="mt-4">
         <TabsList>
           <TabsTrigger value="sensores">Sensores</TabsTrigger>
-          <TabsTrigger value="dron">Dron</TabsTrigger>
+          <TabsTrigger value="robot">Robot</TabsTrigger>
           <TabsTrigger value="enfermedades">Brotes</TabsTrigger>
         </TabsList>
 
@@ -173,78 +166,49 @@ export default async function DetalleLote({ params }: { params: Promise<{ id: st
           </div>
         </TabsContent>
 
-        <TabsContent value="dron" className="mt-3 space-y-4">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Seccion titulo="Vigor del cultivo (NDVI)" descripcion="Índice de vegetación por vuelo: promedio y zona más débil del lote. Cae con enfermedad o falta de agua.">
-              <SerieTiempo
-                datos={vuelosSerie}
-                series={[
-                  { clave: "ndvi", nombre: "NDVI promedio", color: "var(--series-1)" },
-                  { clave: "ndviMin", nombre: "NDVI mínimo", color: "var(--series-1)", punteada: true },
-                ]}
-                formatoX="fecha"
-                decimalesY={2}
-                dominioY={[0.3, 0.9]}
-              />
-            </Seccion>
-            <Seccion titulo="Área anómala" descripcion="% del lote marcado como anómalo por el modelo de visión del dron.">
-              <SerieTiempo datos={vuelosSerie} series={[{ clave: "areaAnomalaPct", nombre: "Área anómala", color: "var(--series-2)", unidad: "%" }]} tipo="area" formatoX="fecha" />
-            </Seccion>
-          </div>
-          <Seccion titulo="Últimos vuelos">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Dron</TableHead>
-                  <TableHead className="text-right">Duración</TableHead>
-                  <TableHead className="text-right">Cobertura</TableHead>
-                  <TableHead className="text-right">NDVI</TableHead>
-                  <TableHead className="text-right">Área anómala</TableHead>
-                  <TableHead className="text-right">Detecciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {[...vuelos].reverse().slice(0, 12).map((v) => (
-                  <TableRow key={v.id}>
-                    <TableCell className="whitespace-nowrap">{fmtFechaHora(v.fecha)}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{v.dronId}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmtNum(v.duracionMin, 0)} min</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmtPct(v.coberturaPct, 0)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmtNum(v.ndvi, 2)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmtPct(v.areaAnomalaPct, 1)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{detPorFecha.get(v.fecha.getTime()) ?? 0}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Seccion>
-          <Seccion titulo="Detecciones recientes" descripcion="Cada fila es una zona enferma identificada en una imagen del dron.">
-            {detecciones.length ? (
+        <TabsContent value="robot" className="mt-3 space-y-4">
+          <Seccion titulo="Últimas capturas del robot" descripcion="Lecturas reales de la cámara en este lote. Puntuaciones ×100; no son probabilidades ni porcentaje de área enferma.">
+            {capturas.length ? (
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Fecha</TableHead>
-                    <TableHead>Enfermedad</TableHead>
-                    <TableHead>Severidad</TableHead>
-                    <TableHead className="text-right">Plantas afectadas</TableHead>
-                    <TableHead className="text-right">Confianza</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Puntuaciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {detecciones.slice(0, 15).map((d) => (
-                    <TableRow key={d.id}>
-                      <TableCell className="whitespace-nowrap">{fmtFechaHora(d.fecha)}</TableCell>
-                      <TableCell><EnfermedadBadge enfermedad={d.enfermedad} /></TableCell>
-                      <TableCell><Severidad nivel={d.severidad} /></TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtPct(d.plantasAfectadasPct, 1)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtPct(d.confianza * 100, 0)}</TableCell>
+                  {capturas.map((c) => (
+                    <TableRow key={c.id}>
+                      <TableCell className="whitespace-nowrap">
+                        <Link href={`/capturas/${c.id}`} className="hover:underline">{fmtFecha(c.capturadoEn, "d MMM, HH:mm:ss")}</Link>
+                        {c.simulado ? <div className="mt-1"><DistintivoSimulado compacto /></div> : null}
+                      </TableCell>
+                      <TableCell className="text-sm">{c.alerta ? <span className="font-medium text-[var(--status-critical)]">Alerta con foto</span> : c.tieneFoto ? "Con foto" : "Periódica"}</TableCell>
+                      <TableCell><Puntuacion4 p={c.puntuaciones} compacto /></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             ) : (
-              <p className="py-6 text-center text-sm text-muted-foreground">El dron no ha detectado enfermedades en este lote.</p>
+              <p className="py-6 text-center text-sm text-muted-foreground">El robot todavía no ha enviado capturas de este lote.</p>
+            )}
+          </Seccion>
+          <Seccion titulo="Revisiones del robot en este lote">
+            {recorridos.length ? (
+              <ul className="divide-y divide-border text-sm">
+                {recorridos.map((r) => (
+                  <li key={r.inspectionId} className="flex flex-wrap items-center justify-between gap-3 py-2">
+                    <span className="flex items-center gap-2">
+                      <Link href={`/recorridos/${r.inspectionId}`} className="font-medium hover:underline">{r.nombre ?? r.inspectionId.slice(0, 8)}</Link>
+                      {r.simulado ? <DistintivoSimulado compacto /> : null}
+                    </span>
+                    <span className="flex items-center gap-4"><FaseRecorrido fase={r.fase} /><Progreso completados={r.completados} total={r.total} /></span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="py-6 text-center text-sm text-muted-foreground">Todavía no hay revisiones del robot en este lote.</p>
             )}
           </Seccion>
         </TabsContent>

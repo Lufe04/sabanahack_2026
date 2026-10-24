@@ -8,7 +8,6 @@ import {
   fechaLocal,
   isoFecha,
   type EstadoSimulacion,
-  type VueloConDetecciones,
   type OpcionesSimulacion,
 } from "./motor";
 
@@ -17,14 +16,13 @@ export { Rng } from "./rng";
 export type { OpcionesSimulacion };
 export const SENSORES_CAIDOS_DEFAULT = (dias: number) => ({ "L06-HA-1": dias - 9, "L03-HS-2": dias - 2 });
 export * from "./enfermedades";
-export type { EstadoSimulacion, VueloConDetecciones };
+export type { EstadoSimulacion };
 
 export type Historial = {
   inicio: Date;
   lotes: NuevoLote[];
   sensores: NuevoSensor[];
   lecturas: NuevaLectura[];
-  vuelos: VueloConDetecciones[];
   eventos: NuevoEvento[];
   resumen: NuevoResumenDiario[];
   cosechas: NuevaCosecha[];
@@ -65,18 +63,16 @@ export function generarHistorial(opts: OpcionesHistorial = {}): Historial {
   };
 
   const lecturas: NuevaLectura[] = [];
-  const vuelos: VueloConDetecciones[] = [];
   const resumen: NuevoResumenDiario[] = [];
   const cosechas: NuevaCosecha[] = [];
 
   for (let d = 0; d < dias; d++) {
     const salida = simularDia(estado, inicio, lotes, sensores, rng, opciones);
     if (conLecturas) lecturas.push(...salida.lecturas);
-    vuelos.push(...salida.vuelos);
     resumen.push(...salida.resumen);
     cosechas.push(...salida.cosechas);
   }
 
   const eventos = eventosAFilas(estado.eventos, dias - 1, inicio);
-  return { inicio, lotes, sensores, lecturas, vuelos, eventos, resumen, cosechas, estado };
+  return { inicio, lotes, sensores, lecturas, eventos, resumen, cosechas, estado };
 }

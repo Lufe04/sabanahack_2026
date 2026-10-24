@@ -15,8 +15,8 @@ export type ParamsPlaga = {
   duracionDias: [number, number];
   severidadMax: [number, number];
   areaMaxPct: [number, number];
-  /** Qué tan fácil lo ve el dron (1 = daño foliar evidente, 0.4 = daño sutil). */
-  visibilidadDron: number;
+  /** Qué tan fácil lo ve la cámara del robot a la altura de la planta (1 = evidente). */
+  visibilidadRobot: number;
   /** Probabilidad extra de hallarlo en inspección o trampas. */
   deteccionCampo: number;
   tratamiento: string;
@@ -35,7 +35,7 @@ export const PARAMS_ENFERMEDAD: Record<Enfermedad, ParamsPlaga> = {
     duracionDias: [15, 40],
     severidadMax: [1, 4],
     areaMaxPct: [3, 20],
-    visibilidadDron: 0.45,
+    visibilidadRobot: 0.6,
     deteccionCampo: 0.2,
     tratamiento: "Trampas azules + control biológico (Orius, Beauveria) y spinosad en rotación",
     preventivo: "Revisar trampas azules y flores abiertas; eliminar malezas hospederas",
@@ -51,7 +51,7 @@ export const PARAMS_ENFERMEDAD: Record<Enfermedad, ParamsPlaga> = {
     duracionDias: [14, 30],
     severidadMax: [2, 5],
     areaMaxPct: [3, 22],
-    visibilidadDron: 1,
+    visibilidadRobot: 0.95,
     deteccionCampo: 0.1,
     tratamiento: "Poda sanitaria + fungicida biológico (Trichoderma) o botricida en rotación",
     preventivo: "Mejorar ventilación con poda, retirar fruto y flor caída, evitar riego foliar",
@@ -67,7 +67,7 @@ export const PARAMS_ENFERMEDAD: Record<Enfermedad, ParamsPlaga> = {
     duracionDias: [12, 28],
     severidadMax: [2, 4],
     areaMaxPct: [3, 18],
-    visibilidadDron: 0.85,
+    visibilidadRobot: 0.9,
     deteccionCampo: 0.1,
     tratamiento: "Retiro de fruto afectado + fungicida (azoxistrobina) rotado con cobre",
     preventivo: "Cosechar a tiempo, evitar heridas en fruto, manejar humedad del follaje",

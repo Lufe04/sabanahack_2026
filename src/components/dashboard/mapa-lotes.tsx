@@ -6,11 +6,10 @@ import { CapaRecorridos, type FeatureCollectionRecorridos, type PuntoSeleccionad
 import { Puntuacion4 } from "./puntuaciones";
 import { DistintivoSimulado } from "./fase-recorrido";
 import type { Puntuaciones } from "@/db/schema";
-import { MapContainer, TileLayer, Polygon, Tooltip, CircleMarker, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Polygon, Tooltip, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { useRouter } from "next/navigation";
-import { COLOR_RIESGO, nivelRiesgo, ETIQUETA_RIESGO, COLOR_ENFERMEDAD, NOMBRE_ENFERMEDAD } from "@/lib/viz/palette";
-import type { Enfermedad } from "@/db/schema";
+import { COLOR_RIESGO, nivelRiesgo, ETIQUETA_RIESGO } from "@/lib/viz/palette";
 
 export type LoteMapa = {
   id: string;
@@ -20,14 +19,11 @@ export type LoteMapa = {
   eventosActivos: number;
 };
 
-export type PuntoDeteccion = { lat: number; lng: number; enfermedad: Enfermedad; severidad: number };
-
 type Props = {
   lotes: LoteMapa[];
   centro: { lat: number; lng: number };
   zoom?: number;
   alto?: number;
-  detecciones?: PuntoDeteccion[];
   interactivo?: boolean;
   /** Etiquetas cortas (solo código y riesgo) para mapas pequeños. */
   compacto?: boolean;
@@ -44,7 +40,7 @@ function Encuadre({ bounds }: { bounds: [[number, number], [number, number]] }) 
   return null;
 }
 
-export function MapaLotes({ lotes, centro, zoom = 17, alto = 360, detecciones = [], interactivo = true, compacto = false, recorridos }: Props) {
+export function MapaLotes({ lotes, centro, zoom = 17, alto = 360, interactivo = true, compacto = false, recorridos }: Props) {
   const router = useRouter();
   const [punto, setPunto] = useState<PuntoSeleccionado | null>(null);
   const haySimulados = recorridos?.inicial.features.some((f) => f.properties.simulated === true) ?? false;
@@ -101,18 +97,6 @@ export function MapaLotes({ lotes, centro, zoom = 17, alto = 360, detecciones = 
             </Polygon>
           );
         })}
-        {detecciones.map((d, i) => (
-          <CircleMarker
-            key={i}
-            center={[d.lat, d.lng]}
-            radius={4 + d.severidad}
-            pathOptions={{ color: "var(--viz-surface)", weight: 1.5, fillColor: COLOR_ENFERMEDAD[d.enfermedad], fillOpacity: 0.9 }}
-          >
-            <Tooltip>
-              <span className="text-xs">{NOMBRE_ENFERMEDAD[d.enfermedad]} · severidad {d.severidad}</span>
-            </Tooltip>
-          </CircleMarker>
-        ))}
         {recorridos ? (
           <CapaRecorridos inicial={recorridos.inicial} url={recorridos.url} encuadrar={recorridos.encuadrar} onPunto={setPunto} />
         ) : null}

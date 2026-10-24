@@ -15,7 +15,17 @@ const LOTE = 4000;
 async function insertarEnLotes<T>(nombre: string, filas: T[], fn: (b: T[]) => Promise<unknown>) {
   const t0 = Date.now();
   for (let i = 0; i < filas.length; i += LOTE) {
-    await fn(filas.slice(i, i + LOTE));
+    // Reintenta cada bloque: una red inestable no debe dejar la carga a medias
+    for (let intento = 1; ; intento++) {
+      try {
+        await fn(filas.slice(i, i + LOTE));
+        break;
+      } catch (e) {
+        if (intento >= 3) throw e;
+        console.log(`\n  ${nombre}: reintento ${intento} del bloque ${i / LOTE + 1}`);
+        await new Promise((ok) => setTimeout(ok, 2000 * intento));
+      }
+    }
     if (filas.length > LOTE * 5 && (i / LOTE) % 10 === 0) {
       process.stdout.write(`\r  ${nombre}: ${Math.min(i + LOTE, filas.length)}/${filas.length}`);
     }
@@ -29,15 +39,15 @@ async function main() {
   console.log(`Generando ${dias} días de historial (seed ${seed})...`);
   const h = generarHistorial({ dias, seed });
   console.log(
-    `  ${h.lotes.length} lotes, ${h.sensores.length} sensores, ${h.lecturas.length} lecturas, ${h.vuelos.length} vuelos, ${h.eventos.length} eventos`,
+    `  ${h.lotes.length} lotes, ${h.sensores.length} sensores, ${h.lecturas.length} lecturas, ${h.eventos.length} brotes, ${h.cosechas.length} cosechas`,
   );
 
   const db = getDb();
   await fijarZonaHoraria();
   console.log("Limpiando tablas...");
   await db.execute(sql`TRUNCATE TABLE
-    ${schema.resumenDiarioLote}, ${schema.cosechas}, ${schema.detecciones}, ${schema.eventosEnfermedad},
-    ${schema.vuelosDron}, ${schema.lecturas}, ${schema.sensores}, ${schema.lotes}
+    ${schema.resumenDiarioLote}, ${schema.cosechas}, ${schema.eventosEnfermedad},
+    ${schema.lecturas}, ${schema.sensores}, ${schema.lotes}
     RESTART IDENTITY CASCADE`);
 
   console.log("Insertando...");
@@ -46,17 +56,6 @@ async function main() {
   await db.insert(schema.sensores).values(h.sensores);
   await insertarEnLotes("lecturas", h.lecturas, (b) => db.insert(schema.lecturas).values(b));
 
-  // Vuelos: necesitamos los ids para las detecciones
-  const vuelosInsertados = await db
-    .insert(schema.vuelosDron)
-    .values(h.vuelos.map((v) => v.vuelo))
-    .returning({ id: schema.vuelosDron.id });
-  const detecciones = h.vuelos.flatMap((v, i) =>
-    v.detecciones.map((d) => ({ ...d, vueloId: vuelosInsertados[i].id })),
-  );
-  console.log(`  vuelos: ${vuelosInsertados.length} filas`);
-  if (detecciones.length) await db.insert(schema.detecciones).values(detecciones);
-  console.log(`  detecciones: ${detecciones.length} filas`);
 
   if (h.eventos.length) await db.insert(schema.eventosEnfermedad).values(h.eventos);
   console.log(`  eventos: ${h.eventos.length} filas`);

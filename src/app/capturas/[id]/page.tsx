@@ -85,7 +85,7 @@ export default async function DetalleCaptura({ params }: { params: Promise<{ id:
                 </div>
               ))}
             </dl>
-            <p className="mt-3 text-xs text-muted-foreground">NDVI, cobertura, severidad y área afectada no aplican a estas observaciones.</p>
+            <p className="mt-3 text-xs text-muted-foreground">La cámara del robot no mide severidad ni área afectada: estas puntuaciones describen el encuadre completo.</p>
           </Seccion>
         </div>
       </div>

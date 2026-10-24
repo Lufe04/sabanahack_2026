@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sun, Map, BarChart3, Radio, Leaf, Bug, History, Camera, Route } from "lucide-react";
+import { Sun, Map, BarChart3, Radio, Leaf, Bug, History, Camera, Route, Wifi } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /** Campo: datos reales de la APK. Simulación: todo lo demás, que nunca se mezcla con lo real. */
 const campo = [
   { href: "/capturas", etiqueta: "Capturas", Icono: Camera },
   { href: "/recorridos", etiqueta: "Recorridos", Icono: Route },
+  { href: "/conexion", etiqueta: "Conexión", Icono: Wifi },
 ];
 
 const enlaces = [

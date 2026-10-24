@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Search, Syringe, Droplets, Waves, Plane, Radio, CloudRain } from "lucide-react";
+import { Search, Syringe, Droplets, Waves, Radio, CloudRain } from "lucide-react";
 import type { Recomendacion, TipoAccion, Prioridad } from "@/lib/recomendaciones";
 import { cn } from "@/lib/utils";
 
@@ -8,7 +8,6 @@ const ICONO: Record<TipoAccion, typeof Search> = {
   tratamiento: Syringe,
   riego: Droplets,
   drenaje: Waves,
-  vuelo: Plane,
   sensor: Radio,
   aplicacion: CloudRain,
 };

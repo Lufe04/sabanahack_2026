@@ -64,7 +64,7 @@ export default async function Hoy() {
         </Seccion>
       </div>
 
-      <Seccion titulo="Estado de los lotes" descripcion="Un vistazo por lote: riesgo, qué plaga amenaza, cómo está el suelo y cuándo lo revisó el dron." className="mt-4">
+      <Seccion titulo="Estado de los lotes" descripcion="Un vistazo por lote: riesgo, qué plaga amenaza, cómo está el suelo y si tiene brotes abiertos." className="mt-4">
         <Table>
           <TableHeader>
             <TableRow>
@@ -72,9 +72,7 @@ export default async function Hoy() {
               <TableHead>Riesgo hoy</TableHead>
               <TableHead>Amenaza principal</TableHead>
               <TableHead>Suelo</TableHead>
-              <TableHead className="text-right">Vigor (NDVI)</TableHead>
               <TableHead className="text-right">Brotes abiertos</TableHead>
-              <TableHead className="text-right">Último vuelo</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -89,9 +87,7 @@ export default async function Hoy() {
                   <TableCell><RiesgoBadge indice={l.indiceRiesgo} /></TableCell>
                   <TableCell>{amenaza ? <AmenazaBadge plaga={amenaza.plaga} riesgo={amenaza.riesgo} /> : "—"}</TableCell>
                   <TableCell><SueloBadge estado={estadoSuelo(l.humedadSueloProm)} valor={l.humedadSueloProm} /></TableCell>
-                  <TableCell className="text-right tabular-nums">{fmtNum(l.ndvi, 2)}</TableCell>
                   <TableCell className="text-right tabular-nums">{l.eventosActivos || <span className="text-muted-foreground">0</span>}</TableCell>
-                  <TableCell className="text-right text-sm text-muted-foreground">{l.diasDesdeVuelo === null ? "—" : l.diasDesdeVuelo === 0 ? "hoy" : `hace ${l.diasDesdeVuelo} d`}</TableCell>
                 </TableRow>
               );
             })}

@@ -63,7 +63,7 @@ export default async function Analitica() {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Kpi etiqueta="Brotes en el período" valor={totalBrotes} detalle={`${fmtNum(totalBrotes / kpis.hectareas, 1)} por hectárea`} />
         <Kpi etiqueta="Problema más frecuente" valor={masComun ? NOMBRE_ENFERMEDAD[masComun.enfermedad] : "—"} detalle={masComun ? `${masComun.brotes} brotes en ${masComun.lotesAfectados} lotes` : undefined} />
-        <Kpi etiqueta="Detectados por dron" valor={fmtPct(kpis.pctDeteccionDron, 0)} detalle="el resto en campo o trampas" />
+        <Kpi etiqueta="Detectados por el robot" valor={fmtPct(kpis.pctDeteccionRobot, 0)} detalle="el resto en campo o trampas" />
         <Kpi etiqueta="Tiempo a detección" valor={fmtNum(kpis.diasDeteccionProm, 1)} unidad="días" detalle="promedio desde el inicio del brote" />
       </div>
 
@@ -142,7 +142,7 @@ export default async function Analitica() {
                 <TableHead className="text-right">Severidad</TableHead>
                 <TableHead className="text-right">Duración</TableHead>
                 <TableHead className="text-right">Área</TableHead>
-                <TableHead className="text-right">Vía dron</TableHead>
+                <TableHead className="text-right">Vía robot</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -154,7 +154,7 @@ export default async function Analitica() {
                   <TableCell className="text-right tabular-nums">{fmtNum(e.severidadProm, 1)} / 5</TableCell>
                   <TableCell className="text-right tabular-nums">{fmtNum(e.duracionProm, 0)} d</TableCell>
                   <TableCell className="text-right tabular-nums">{fmtPct(e.areaProm, 1)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{fmtPct(e.pctDron, 0)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtPct(e.pctRobot, 0)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -181,7 +181,7 @@ export default async function Analitica() {
             <li><span className="text-foreground">Humedad sostenida es el disparador de hongos.</span> Cuando el aire pasa más de 15 horas al día sobre 85 % durante varios días, conviene inspeccionar y hacer poda sanitaria antes de que aparezca el moho.</li>
             <li><span className="text-foreground">Los trips llegan con el tiempo seco.</span> En rachas secas revisar trampas azules y flores abiertas, sobre todo en Sharpblue y Ventura.</li>
             <li><span className="text-foreground">El drenaje pesa más que la variedad.</span> Los lotes con drenaje malo acumulan brotes de hongos todo el año. Mejorar canales es la inversión con mayor retorno.</li>
-            <li><span className="text-foreground">El dron encuentra los hongos antes que la gente.</span> Botrytis y Alternaria se ven desde el aire; los trips casi nunca, y por eso dependen de trampas e inspección.</li>
+            <li><span className="text-foreground">El robot encuentra los hongos antes que la gente.</span> Su cámara pasa a la altura de la planta cada pocos días: Botrytis y Alternaria se ven con claridad; los trips cuestan más y conviene seguirlos también con trampas azules.</li>
           </ul>
         </Seccion>
       </div>

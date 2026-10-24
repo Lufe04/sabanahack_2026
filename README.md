@@ -1,6 +1,6 @@
 # Monitoreo de cultivos de arándano
 
-Dashboard para una finca de arándanos que integra tres fuentes de datos: vuelos de dron por lote, sensores de humedad y ambiente, y el historial de plagas y enfermedades (Trips, Botrytis y Alternaria). Está pensado para el agrónomo: la portada dice qué hacer hoy, y la analítica responde qué tanto se enferman los lotes, cuáles más, cada cuánto y bajo qué condiciones.
+Dashboard para una finca de arándanos que integra tres fuentes de datos: un robot con cámara que recorre los lotes y clasifica lo que ve, sensores de humedad y ambiente, y el historial de plagas y enfermedades (Trips, Botrytis y Alternaria). Está pensado para el agrónomo: la portada dice qué hacer hoy, y la analítica responde qué tanto se enferman los lotes, cuáles más, cada cuánto y bajo qué condiciones.
 
 Es un MVP con **datos simulados**, pero está armado para recibir datos reales sin tocar el dashboard: el simulador escribe por las mismas tablas que usará la API de ingesta.
 
@@ -48,13 +48,13 @@ src/
   app/api/events/      Receptor de la APK: observaciones, fotos y recorridos (idempotente por UUID)
   app/api/recorridos/  Feed GeoJSON de rutas de la APK para otros servidores
   lib/cultivos/        Adaptador 0.2.2 de la APK (adaptador/) y su conexión con el dashboard
-  app/api/ingesta/     POST lecturas y vuelos (para sensores y dron reales)
+  app/api/ingesta/     POST lecturas de sensores
   app/api/cron/        Avanza el simulador un día (Vercel Cron)
-  db/schema.ts         Tablas: lotes, sensores, lecturas, vuelos_dron, detecciones,
+  db/schema.ts         Tablas: lotes, sensores, lecturas, cultivos_* (robot),
                        eventos_enfermedad, cosechas, resumen_diario_lote
   lib/queries/         Consultas SQL del dashboard (ranking, heatmaps, correlaciones)
   lib/recomendaciones.ts Reglas agronómicas que convierten el estado en acciones del día
-  lib/simulador/       Clima de la sabana, balance hídrico, modelo de brotes, dron
+  lib/simulador/       Clima de la sabana, balance hídrico, modelo de brotes, rondas del robot
   lib/viz/             Paleta y formatos de las gráficas
   components/charts/   Gráficas reutilizables (Recharts)
   components/dashboard Mapa, KPIs, badges, tablas
@@ -65,8 +65,8 @@ scripts/seed.ts        Carga el historial simulado
 
 - **lotes**: variedad, hectáreas, drenaje, polígono geográfico.
 - **sensores** y **lecturas**: serie de tiempo cada 30 min (humedad de suelo y aire, temperatura, radiación). Es la tabla grande, indexada por sensor y fecha.
-- **vuelos_dron** y **detecciones**: NDVI, cobertura, área anómala y cada zona enferma identificada con coordenadas, severidad y confianza.
-- **eventos_enfermedad**: un brote desde que inicia hasta que se cierra, con fecha de detección y origen (dron o inspección).
+- **cultivos_registros** y **cultivos_recorridos**: datos reales del robot que envía la APK: lecturas con cuatro puntuaciones, fotos y progreso de cada revisión.
+- **eventos_enfermedad**: un brote desde que inicia hasta que se cierra, con fecha de detección y origen (robot o inspección en campo).
 - **cosechas**: kilos cosechados y descartados por lote y semana, con la plaga responsable del descarte. De aquí salen las pérdidas en kilos y en pesos (precio de referencia en `src/lib/queries/historial.ts`).
 - **resumen_diario_lote**: agregado precalculado por lote y día, incluye el **índice de riesgo** (0 a 100) total y por plaga. El dashboard lee de aquí para no agregar cientos de miles de lecturas en cada carga.
 
@@ -77,7 +77,7 @@ El simulador es causal, no ruido aleatorio. Eso hace que la analítica tenga se�
 1. **Clima** de la sabana de Bogotá: frío, húmedo, con régimen bimodal de lluvias (abril a mayo y octubre a noviembre).
 2. **Balance hídrico** por lote: la lluvia infiltra, la evapotranspiración drena y el riego repone. Los lotes con mal drenaje se encharcan.
 3. **Brotes**: Botrytis y Alternaria suben con horas de humedad del aire sobre 85 % y con mal drenaje; los trips, al contrario, con rachas secas y cálidas. La tasa de aparición usa el promedio de 5 días y la susceptibilidad de la variedad.
-4. **Dron**: vuela cada 4 a 6 días por lote, mide NDVI (que cae con enfermedad y estrés hídrico) y detecta hongos con facilidad pero trips casi nunca. Lo que el dron no ve lo encuentran las trampas y la inspección de campo.
+4. **Robot**: recorre cada lote cada 2 a 4 días con la cámara a la altura de la planta y detecta un brote con probabilidad creciente según su severidad. Ve con claridad Botrytis y Alternaria; los trips le cuestan más. Lo que no ve lo encuentran las trampas y la inspección de campo.
 5. **Tratamiento**: al detectar un brote se acorta su duración y se limita su severidad.
 6. **Cosecha**: cada lunes se registra la semana anterior. El potencial depende de variedad, edad del cultivo y época del año; el descarte crece con el área afectada y la severidad de los brotes activos.
 
@@ -92,14 +92,6 @@ Autenticación con `Authorization: Bearer <INGEST_API_KEY>`.
 curl -X POST https://<host>/api/ingesta/lecturas \
   -H "Authorization: Bearer $INGEST_API_KEY" -H "content-type: application/json" \
   -d '{"lecturas":[{"sensorId":"L01-HS-1","ts":"2026-10-23T12:00:00Z","valor":41.2}]}'
-
-# Vuelo de dron con detecciones
-curl -X POST https://<host>/api/ingesta/vuelos \
-  -H "Authorization: Bearer $INGEST_API_KEY" -H "content-type: application/json" \
-  -d '{"loteId":"L04","dronId":"DJI-M3M-01","fecha":"2026-10-23T13:00:00Z","duracionMin":18,
-       "coberturaPct":98,"ndvi":0.68,"ndviMin":0.52,"areaAnomalaPct":6.1,
-       "detecciones":[{"enfermedad":"botrytis","severidad":3,"plantasAfectadasPct":8,
-                       "lat":4.9897,"lng":-73.8978,"confianza":0.86}]}'
 ```
 
 `GET /api/lotes` devuelve el estado actual de cada lote.
@@ -135,16 +127,16 @@ Notas:
 - El seed sube unas 370.000 lecturas a Neon y tarda uno o dos minutos.
 - Vercel llama a `/api/cron/simular-dia` todos los días a las 00:15 de Colombia con el `CRON_SECRET`. Si alguna ejecución falla, la siguiente simula hasta 7 días pendientes.
 - Para reiniciar los datos de la demo basta con volver a correr `npm run db:seed:prod`.
-- Cuando lleguen datos reales, se elimina el cron de `vercel.json` y los sensores y el dron escriben por `/api/ingesta`.
+- Cuando lleguen datos reales, se elimina el cron de `vercel.json` y los sensores escriben por `/api/ingesta` y el robot por `/api/events`.
 
 ## Recomendaciones del día
 
-`src/lib/recomendaciones.ts` tiene reglas explícitas y fáciles de ajustar con el agrónomo: riesgo por plaga sobre 30 % sin brote conocido, brotes abiertos, suelo seco o encharcado, vuelos atrasados, sensores caídos y lluvia del día. Cada regla produce una acción con prioridad (urgente, hoy, esta semana).
+`src/lib/recomendaciones.ts` tiene reglas explícitas y fáciles de ajustar con el agrónomo: riesgo por plaga sobre 30 % sin brote conocido, brotes abiertos, suelo seco o encharcado, sensores caídos y lluvia del día. Cada regla produce una acción con prioridad (urgente, hoy, esta semana).
 
 ## Siguientes pasos
 
 - Autenticación y multi finca.
-- Imágenes del dron en Vercel Blob, enlazadas desde `vuelos_dron.imagen_url`.
+- Fotos del robot en Vercel Blob en vez de `bytea`, conservando el UUID de cada captura.
 - Filtro de rango de fechas en Analítica.
 - Alertas por WhatsApp o correo cuando un lote pase a riesgo alto.
 - Modelo predictivo entrenado con datos reales, reemplazando el índice de riesgo heurístico.

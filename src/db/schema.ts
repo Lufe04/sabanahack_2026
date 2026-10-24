@@ -40,7 +40,8 @@ export const DRENAJES = ["bueno", "regular", "malo"] as const;
 export type Drenaje = (typeof DRENAJES)[number];
 export const drenajeEnum = pgEnum("drenaje", DRENAJES);
 
-export const ORIGENES_EVENTO = ["dron", "inspeccion"] as const;
+/** Quién detectó el brote: el robot con cámara en su ronda, o una persona en campo. */
+export const ORIGENES_EVENTO = ["robot", "inspeccion"] as const;
 export const origenEventoEnum = pgEnum("origen_evento", ORIGENES_EVENTO);
 
 export const ESTADOS_EVENTO = ["activo", "controlado", "cerrado"] as const;
@@ -97,53 +98,6 @@ export const lecturas = pgTable(
   ],
 );
 
-/** Vuelo de dron sobre un lote. */
-export const vuelosDron = pgTable(
-  "vuelos_dron",
-  {
-    id: serial("id").primaryKey(),
-    loteId: text("lote_id")
-      .notNull()
-      .references(() => lotes.id, { onDelete: "cascade" }),
-    dronId: text("dron_id").notNull(),
-    fecha: timestamp("fecha", { withTimezone: true }).notNull(),
-    duracionMin: real("duracion_min").notNull(),
-    coberturaPct: real("cobertura_pct").notNull(),
-    /** Índice de vegetación promedio del lote (0 a 1). */
-    ndvi: real("ndvi").notNull(),
-    ndviMin: real("ndvi_min").notNull(),
-    /** % del área del lote marcada como anómala por el modelo de visión. */
-    areaAnomalaPct: real("area_anomala_pct").notNull(),
-    imagenUrl: text("imagen_url"),
-  },
-  (t) => [index("vuelos_lote_fecha_idx").on(t.loteId, t.fecha)],
-);
-
-/** Detección puntual de enfermedad en un vuelo. */
-export const detecciones = pgTable(
-  "detecciones",
-  {
-    id: serial("id").primaryKey(),
-    vueloId: integer("vuelo_id")
-      .notNull()
-      .references(() => vuelosDron.id, { onDelete: "cascade" }),
-    loteId: text("lote_id")
-      .notNull()
-      .references(() => lotes.id, { onDelete: "cascade" }),
-    enfermedad: enfermedadEnum("enfermedad").notNull(),
-    /** 1 (leve) a 5 (crítica). */
-    severidad: integer("severidad").notNull(),
-    plantasAfectadasPct: real("plantas_afectadas_pct").notNull(),
-    lat: real("lat").notNull(),
-    lng: real("lng").notNull(),
-    confianza: real("confianza").notNull(),
-  },
-  (t) => [
-    index("detecciones_lote_idx").on(t.loteId),
-    index("detecciones_vuelo_idx").on(t.vueloId),
-  ],
-);
-
 /** Brote de enfermedad: desde que aparece hasta que se controla. */
 export const eventosEnfermedad = pgTable(
   "eventos_enfermedad",
@@ -189,7 +143,6 @@ export const resumenDiarioLote = pgTable(
     /** Horas del día con humedad del aire > 85 %. Predictor clave de hongos. */
     horasHumedadAlta: real("horas_humedad_alta"),
     lluviaMm: real("lluvia_mm"),
-    ndvi: real("ndvi"),
     eventosActivos: integer("eventos_activos").notNull().default(0),
     /** 0 a 100. Riesgo estimado de brote (cualquier plaga) en los próximos 7 días. */
     indiceRiesgo: real("indice_riesgo").notNull().default(0),
@@ -291,6 +244,28 @@ export const cultivosRecorridos = pgTable(
   },
 );
 
+/**
+ * Bitácora de cada intento de POST /api/events, aceptado o rechazado. Sirve para
+ * diagnosticar la conexión con la APK: si un envío no aparece en Capturas, aquí se ve
+ * si llegó y por qué se rechazó. No guarda el cuerpo ni la foto.
+ */
+export const cultivosIntentos = pgTable(
+  "cultivos_intentos",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    recibidoEn: timestamp("recibido_en", { withTimezone: true }).notNull().defaultNow(),
+    estado: integer("estado").notNull(),
+    error: text("error"),
+    eventoId: text("evento_id"),
+    tipo: text("tipo"),
+    loteId: text("lote_id"),
+    bytes: integer("bytes"),
+    conToken: boolean("con_token").notNull(),
+    agente: text("agente"),
+  },
+  (t) => [index("cultivos_intentos_fecha_idx").on(t.recibidoEn)],
+);
+
 export type CultivoRegistro = typeof cultivosRegistros.$inferSelect;
 export type CultivoRecorrido = typeof cultivosRecorridos.$inferSelect;
 
@@ -298,7 +273,6 @@ export type CultivoRecorrido = typeof cultivosRecorridos.$inferSelect;
 
 export const lotesRelations = relations(lotes, ({ many }) => ({
   sensores: many(sensores),
-  vuelos: many(vuelosDron),
   eventos: many(eventosEnfermedad),
 }));
 
@@ -311,16 +285,6 @@ export const lecturasRelations = relations(lecturas, ({ one }) => ({
   sensor: one(sensores, { fields: [lecturas.sensorId], references: [sensores.id] }),
 }));
 
-export const vuelosRelations = relations(vuelosDron, ({ one, many }) => ({
-  lote: one(lotes, { fields: [vuelosDron.loteId], references: [lotes.id] }),
-  detecciones: many(detecciones),
-}));
-
-export const deteccionesRelations = relations(detecciones, ({ one }) => ({
-  vuelo: one(vuelosDron, { fields: [detecciones.vueloId], references: [vuelosDron.id] }),
-  lote: one(lotes, { fields: [detecciones.loteId], references: [lotes.id] }),
-}));
-
 export const eventosRelations = relations(eventosEnfermedad, ({ one }) => ({
   lote: one(lotes, { fields: [eventosEnfermedad.loteId], references: [lotes.id] }),
 }));
@@ -330,8 +294,6 @@ export const eventosRelations = relations(eventosEnfermedad, ({ one }) => ({
 export type Lote = typeof lotes.$inferSelect;
 export type Sensor = typeof sensores.$inferSelect;
 export type Lectura = typeof lecturas.$inferSelect;
-export type VueloDron = typeof vuelosDron.$inferSelect;
-export type Deteccion = typeof detecciones.$inferSelect;
 export type EventoEnfermedad = typeof eventosEnfermedad.$inferSelect;
 export type ResumenDiarioLote = typeof resumenDiarioLote.$inferSelect;
 export type Cosecha = typeof cosechas.$inferSelect;
@@ -340,7 +302,5 @@ export type NuevaCosecha = typeof cosechas.$inferInsert;
 export type NuevoLote = typeof lotes.$inferInsert;
 export type NuevoSensor = typeof sensores.$inferInsert;
 export type NuevaLectura = typeof lecturas.$inferInsert;
-export type NuevoVuelo = typeof vuelosDron.$inferInsert;
-export type NuevaDeteccion = typeof detecciones.$inferInsert;
 export type NuevoEvento = typeof eventosEnfermedad.$inferInsert;
 export type NuevoResumenDiario = typeof resumenDiarioLote.$inferInsert;
