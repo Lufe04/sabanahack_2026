@@ -42,6 +42,10 @@ export async function POST(req: Request) {
   const { detecciones, ...vuelo } = parse.data;
 
   const db = getDb();
+  const lotesValidos = (await db.select({ id: schema.lotes.id }).from(schema.lotes)).map((l) => l.id);
+  if (!lotesValidos.includes(vuelo.loteId)) {
+    return NextResponse.json({ error: "Lote desconocido", loteId: vuelo.loteId, lotesValidos }, { status: 422 });
+  }
   const resultado = await db.transaction(async (tx) => {
     const [v] = await tx.insert(schema.vuelosDron).values({ ...vuelo, imagenUrl: vuelo.imagenUrl ?? null }).returning({ id: schema.vuelosDron.id });
     if (detecciones.length) {

@@ -1,4 +1,7 @@
 import {
+  customType,
+  uuid,
+  doublePrecision,
   pgTable,
   pgEnum,
   text,
@@ -225,6 +228,89 @@ export const estadoSimulador = pgTable("estado_simulador", {
   estado: jsonb("estado").notNull(),
   actualizadoEn: timestamp("actualizado_en", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ---------- Datos reales de la APK "Cultivos a bordo" ----------
+//
+// Estas tablas guardan observaciones reales del teléfono y nunca se mezclan con
+// la simulación. No tienen clave foránea a `lotes` a propósito: así un reseed de
+// la simulación (que trunca `lotes` en cascada) no borra evidencia real. El lote
+// se valida en el receptor contra el mismo catálogo que expone /api/lotes.
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType: () => "bytea",
+});
+
+/** Las cuatro salidas del modelo, de 0 a 1, tal como las entrega la APK. */
+export type Puntuaciones = { alternaria: number; botrytis: number; sana: number; trips: number };
+
+export const REVISIONES_HUMANAS = ["pendiente", "confirmada", "descartada"] as const;
+export type RevisionHumana = (typeof REVISIONES_HUMANAS)[number];
+
+/** Cada evento recibido por POST /api/events: observación o estado de recorrido. */
+export const cultivosRegistros = pgTable(
+  "cultivos_registros",
+  {
+    /** UUID generado por la APK. Es la clave de idempotencia. */
+    id: uuid("id").primaryKey(),
+    /** Orden de llegada, para paginar con cursor estable. */
+    seq: bigserial("seq", { mode: "number" }).notNull().unique(),
+    tipo: text("tipo").notNull(), // observation | route_snapshot | legacy
+    schemaVersion: integer("schema_version"),
+    capturadoEn: timestamp("capturado_en", { withTimezone: true }).notNull(),
+    recibidoEn: timestamp("recibido_en", { withTimezone: true }).notNull().defaultNow(),
+    loteId: text("lote_id"),
+    inspectionId: uuid("inspection_id"),
+    planId: uuid("plan_id"),
+    waypointId: uuid("waypoint_id"),
+    modelo: text("modelo"),
+    puntuaciones: jsonb("puntuaciones").$type<Puntuaciones>(),
+    alerta: boolean("alerta").notNull().default(false),
+    modoCaptura: text("modo_captura"), // periodic | automatic | manual | route_reference
+    lat: doublePrecision("lat"),
+    lng: doublePrecision("lng"),
+    precisionM: doublePrecision("precision_m"),
+    foto: bytea("foto"),
+    fotoMime: text("foto_mime"),
+    fotoNombre: text("foto_nombre"),
+    fotoBytes: integer("foto_bytes"),
+    /** Payload completo sin la foto, para no perder ningún campo de la APK. */
+    datos: jsonb("datos").notNull(),
+    /** SHA-256 del contenido canónico: distingue un reintento de un UUID reutilizado. */
+    huella: text("huella").notNull(),
+    revisionHumana: text("revision_humana").notNull().default("pendiente"),
+    revisadoEn: timestamp("revisado_en", { withTimezone: true }),
+  },
+  (t) => [
+    index("cultivos_registros_lote_idx").on(t.loteId, t.capturadoEn),
+    index("cultivos_registros_inspection_idx").on(t.inspectionId),
+    index("cultivos_registros_capturado_idx").on(t.capturadoEn),
+  ],
+);
+
+/** Última versión conocida de cada revisión (inspection). Nunca retrocede. */
+export const cultivosRecorridos = pgTable(
+  "cultivos_recorridos",
+  {
+    inspectionId: uuid("inspection_id").primaryKey(),
+    planId: uuid("plan_id"),
+    loteId: text("lote_id"),
+    nombre: text("nombre"),
+    fase: text("fase"),
+    completados: integer("completados").notNull().default(0),
+    total: integer("total").notNull().default(0),
+    completa: boolean("completa").notNull().default(false),
+    revision: integer("revision").notNull().default(0),
+    actualizadoEn: timestamp("actualizado_en", { withTimezone: true }).notNull(),
+    puntos: jsonb("puntos").$type<unknown[]>().notNull(),
+    datos: jsonb("datos").notNull(),
+    ultimoEventoId: uuid("ultimo_evento_id").notNull(),
+    recibidoEn: timestamp("recibido_en", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("cultivos_recorridos_lote_idx").on(t.loteId), index("cultivos_recorridos_plan_idx").on(t.planId)],
+);
+
+export type CultivoRegistro = typeof cultivosRegistros.$inferSelect;
+export type CultivoRecorrido = typeof cultivosRecorridos.$inferSelect;
 
 // ---------- Relaciones ----------
 

@@ -5,6 +5,10 @@
 import { sql } from "drizzle-orm";
 import { getDb, closeDb, schema } from "../src/db";
 import { generarHistorial } from "../src/lib/simulador";
+import { fijarZonaHoraria } from "./timezone";
+
+// Para cargas masivas Neon recomienda la conexión directa, no el pooler.
+if (process.env.DATABASE_URL_UNPOOLED) process.env.DATABASE_URL = process.env.DATABASE_URL_UNPOOLED;
 
 const LOTE = 4000;
 
@@ -29,6 +33,7 @@ async function main() {
   );
 
   const db = getDb();
+  await fijarZonaHoraria();
   console.log("Limpiando tablas...");
   await db.execute(sql`TRUNCATE TABLE
     ${schema.resumenDiarioLote}, ${schema.cosechas}, ${schema.detecciones}, ${schema.eventosEnfermedad},

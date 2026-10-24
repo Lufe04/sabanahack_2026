@@ -1,0 +1,8 @@
+# Nunca subir secretos ni artefactos locales
+.env*
+!.env.example
+node_modules
+.next
+drizzle
+*.png
+docker-compose.yml

@@ -2,8 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sun, Map, BarChart3, Radio, Leaf, Bug, History } from "lucide-react";
+import { Sun, Map, BarChart3, Radio, Leaf, Bug, History, Camera, Route } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+/** Campo: datos reales de la APK. Simulación: todo lo demás, que nunca se mezcla con lo real. */
+const campo = [
+  { href: "/capturas", etiqueta: "Capturas", Icono: Camera },
+  { href: "/recorridos", etiqueta: "Recorridos", Icono: Route },
+];
 
 const enlaces = [
   { href: "/", etiqueta: "Hoy", Icono: Sun },
@@ -13,6 +19,21 @@ const enlaces = [
   { href: "/analitica", etiqueta: "Analítica", Icono: BarChart3 },
   { href: "/sensores", etiqueta: "Sensores", Icono: Radio },
 ];
+
+function Enlace({ href, etiqueta, Icono, activo }: { href: string; etiqueta: string; Icono: typeof Sun; activo: boolean }) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "flex items-center gap-2 rounded-md px-2.5 py-2 text-sm transition-colors",
+        activo ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground" : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
+      )}
+    >
+      <Icono className="size-4" />
+      {etiqueta}
+    </Link>
+  );
+}
 
 export function Nav({ finca }: { finca: string }) {
   const ruta = usePathname();
@@ -29,33 +50,21 @@ export function Nav({ finca }: { finca: string }) {
           </div>
         </div>
         <nav className="flex flex-col gap-0.5 px-2">
-          {enlaces.map(({ href, etiqueta, Icono }) => {
-            const activo = href === "/" ? ruta === "/" : ruta.startsWith(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  "flex items-center gap-2 rounded-md px-2.5 py-2 text-sm transition-colors",
-                  activo ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground" : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
-                )}
-              >
-                <Icono className="size-4" />
-                {etiqueta}
-              </Link>
-            );
-          })}
+          <div className="px-2.5 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Campo · datos reales</div>
+          {campo.map((e) => <Enlace key={e.href} {...e} activo={ruta.startsWith(e.href)} />)}
+          <div className="px-2.5 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Simulación</div>
+          {enlaces.map((e) => <Enlace key={e.href} {...e} activo={e.href === "/" ? ruta === "/" : ruta.startsWith(e.href)} />)}
         </nav>
-        <div className="mt-auto px-4 py-3 text-[11px] text-muted-foreground">Datos simulados · MVP</div>
+        <div className="mt-auto px-4 py-3 text-[11px] text-muted-foreground">MVP · la simulación nunca se mezcla con las capturas reales</div>
       </aside>
-      <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-border bg-background md:hidden">
-        {enlaces.map(({ href, etiqueta, Icono }) => {
+      <nav className="fixed inset-x-0 bottom-0 z-20 flex overflow-x-auto border-t border-border bg-background md:hidden">
+        {[...campo, ...enlaces].map(({ href, etiqueta, Icono }) => {
           const activo = href === "/" ? ruta === "/" : ruta.startsWith(href);
           return (
             <Link
               key={href}
               href={href}
-              className={cn("flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px]", activo ? "text-foreground" : "text-muted-foreground")}
+              className={cn("flex min-w-16 flex-1 flex-col items-center gap-0.5 py-2 text-[11px]", activo ? "text-foreground" : "text-muted-foreground")}
             >
               <Icono className="size-4" />
               {etiqueta}

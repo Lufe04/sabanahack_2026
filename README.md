@@ -30,6 +30,8 @@ Scripts útiles:
 |---|---|
 | `npm run db:reset` | Recrea tablas y vuelve a cargar los datos |
 | `npm run db:studio` | Explorador visual de la base de datos |
+| `npm run db:timezone` | Fija la zona horaria de la base en America/Bogota (el seed ya lo hace) |
+| `npm run db:setup:prod` | Crea tablas y carga datos en la base de producción |
 | `npm run sim:calibrar` | Corre la simulación sin lecturas y muestra conteos de brotes |
 | `node scripts/capturas.mjs` | Captura las 7 vistas con Chrome y reporta errores de consola |
 
@@ -39,7 +41,9 @@ Variables de `SEED_DIAS` y `SEED` controlan cuántos días genera el seed y la s
 
 ```
 src/
-  app/                 Vistas: / (hoy: acciones), /lotes, /lotes/[id], /brotes, /historial, /analitica, /sensores
+  app/                 Datos reales: /capturas, /recorridos (APK Cultivos a bordo)
+                       Simulación: / (hoy), /lotes, /brotes, /historial, /analitica, /sensores
+  app/api/events/      Receptor de la APK: observaciones, fotos y recorridos (idempotente por UUID)
   app/api/ingesta/     POST lecturas y vuelos (para sensores y dron reales)
   app/api/cron/        Avanza el simulador un día (Vercel Cron)
   db/schema.ts         Tablas: lotes, sensores, lecturas, vuelos_dron, detecciones,
@@ -98,10 +102,36 @@ curl -X POST https://<host>/api/ingesta/vuelos \
 
 ## Despliegue en Vercel
 
-1. `vercel link` y luego `vercel integration add neon` para crear la base de datos. Neon inyecta `DATABASE_URL`.
-2. Agrega `INGEST_API_KEY` y `CRON_SECRET` con `vercel env add`.
-3. `vercel env pull .env.local` y corre `npm run db:push` y `npm run db:seed` contra Neon.
-4. `vercel deploy --prod`. El cron de `vercel.json` llama a `/api/cron/simular-dia` cada madrugada para que el dashboard siga vivo.
+El proyecto ya está preparado: conexión a Neon con TLS, cierre de conexiones en Fluid Compute, zona horaria fijada en la base, cron diario que se pone al día si falla, y `.vercelignore` para no subir secretos.
+
+```bash
+# 1. Iniciar sesión y vincular el proyecto (una sola vez)
+vercel login
+vercel link --yes
+
+# 2. Crear la base Postgres (Neon) desde el Marketplace.
+#    Inyecta DATABASE_URL y DATABASE_URL_UNPOOLED en el proyecto.
+vercel integration add neon
+
+# 3. Secretos de la API de ingesta y del cron
+openssl rand -hex 24 | vercel env add INGEST_API_KEY production
+openssl rand -hex 24 | vercel env add CRON_SECRET production
+openssl rand -hex 24 | vercel env add DASHBOARD_READ_API_KEY production
+
+# 4. Crear tablas y cargar los 6 meses simulados en Neon
+vercel env pull .env.production.local --environment=production --yes
+npm run db:setup:prod
+
+# 5. Desplegar
+npm run deploy
+```
+
+Notas:
+
+- El seed sube unas 370.000 lecturas a Neon y tarda uno o dos minutos.
+- Vercel llama a `/api/cron/simular-dia` todos los días a las 00:15 de Colombia con el `CRON_SECRET`. Si alguna ejecución falla, la siguiente simula hasta 7 días pendientes.
+- Para reiniciar los datos de la demo basta con volver a correr `npm run db:seed:prod`.
+- Cuando lleguen datos reales, se elimina el cron de `vercel.json` y los sensores y el dron escriben por `/api/ingesta`.
 
 ## Recomendaciones del día
 
