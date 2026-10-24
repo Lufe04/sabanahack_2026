@@ -1,0 +1,18 @@
+# Nombre fijo: conserva el mismo proyecto y volumen de datos aunque la carpeta cambie.
+name: sabanahack_2026
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: arandanos_db
+    environment:
+      POSTGRES_USER: arandanos
+      POSTGRES_PASSWORD: arandanos
+      POSTGRES_DB: arandanos
+    ports:
+      - "5433:5432"
+    volumes:
+      - arandanos_pgdata:/var/lib/postgresql/data
+
+volumes:
+  arandanos_pgdata:

@@ -1,0 +1,764 @@
+[
+  {
+    "id": "6406fa19-9a03-4335-b539-e9430289768f",
+    "schema_version": 2,
+    "type": "route_snapshot",
+    "captured_at": "2026-10-24T08:41:02.771076476Z",
+    "route": {
+      "id": "0325df41-d30b-4597-a84e-44f6c177dbe3",
+      "plan_id": "3f5932e5-ed76-4ae6-9113-eab1b68dccf1",
+      "lot_id": "L01",
+      "name": "Demo lote L01",
+      "phase": "ready",
+      "waypoints": [
+        {
+          "id": "a12db0e7-465c-4e06-a75d-cb645f17a604",
+          "label": "Punto simulado 1",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.990011163013534,
+            "longitude": -73.8991421976244,
+            "source": "simulated_within_lot"
+          }
+        },
+        {
+          "id": "cae834c1-a435-4c43-98a0-6bc8569a42ba",
+          "label": "Punto simulado 2",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.990011163013534,
+            "longitude": -73.898510988122,
+            "source": "simulated_within_lot"
+          }
+        },
+        {
+          "id": "bc462739-e058-4af5-938c-570500ba7ebf",
+          "label": "Punto simulado 3",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.989726697808121,
+            "longitude": -73.8988265928732,
+            "source": "simulated_within_lot"
+          }
+        },
+        {
+          "id": "27c114a0-337c-4d70-80a7-8eb26821c045",
+          "label": "Punto simulado 4",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.989442232602707,
+            "longitude": -73.8991421976244,
+            "source": "simulated_within_lot"
+          }
+        },
+        {
+          "id": "9de65762-b80b-4e28-af90-10c6ed84f3a0",
+          "label": "Punto simulado 5",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.989442232602707,
+            "longitude": -73.898510988122,
+            "source": "simulated_within_lot"
+          }
+        }
+      ],
+      "completed": 0,
+      "revision": 1,
+      "created_at": "2026-10-24T08:41:02.770540082Z",
+      "active_ms": 0,
+      "navigation_mode": "timed_simulation",
+      "simulated": true,
+      "nominal_robot_autonomy_hours": 10,
+      "simulation_point_seconds": 5,
+      "lot_boundary": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.8993,
+              4.9893
+            ],
+            [
+              -73.8983531857464,
+              4.9893
+            ],
+            [
+              -73.8983531857464,
+              4.990153395616241
+            ],
+            [
+              -73.8993,
+              4.990153395616241
+            ],
+            [
+              -73.8993,
+              4.9893
+            ]
+          ]
+        ]
+      },
+      "display_path": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -73.8991421976244,
+            4.990011163013534
+          ],
+          [
+            -73.898510988122,
+            4.990011163013534
+          ],
+          [
+            -73.8988265928732,
+            4.989726697808121
+          ],
+          [
+            -73.8991421976244,
+            4.989442232602707
+          ],
+          [
+            -73.898510988122,
+            4.989442232602707
+          ]
+        ]
+      },
+      "geometry_source": "https:\/\/arandanos-dashboard.vercel.app\/api\/lotes",
+      "geometry_fetched_at": "2026-10-24T08:32:47.703943+00:00",
+      "geometry_verified_on_ground": false,
+      "display_geometry_source": "simulated_within_dashboard_lot",
+      "updated_at": "2026-10-24T08:41:02.771076476Z"
+    },
+    "simulated": true,
+    "simulation_scope": "route_progress_only",
+    "photo_base64": null
+  },
+  {
+    "id": "7b60bf14-77f1-4125-9004-e3d26f9d21a0",
+    "schema_version": 2,
+    "type": "route_snapshot",
+    "captured_at": "2026-10-24T08:41:02.772957730Z",
+    "route": {
+      "id": "fc2ba268-b779-4669-bcb8-04d388f24527",
+      "plan_id": "d99d4a36-4aad-454c-a843-f550a8b4fe71",
+      "lot_id": "L02",
+      "name": "Demo lote L02",
+      "phase": "ready",
+      "waypoints": [
+        {
+          "id": "fdd6a338-c9d8-46be-a453-feaf925038ac",
+          "label": "Punto simulado 1",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.990011163013534,
+            "longitude": -73.89810070194545,
+            "source": "simulated_within_lot"
+          }
+        },
+        {
+          "id": "ad02662b-b5de-4ed6-8f71-1b7b212ec0a4",
+          "label": "Punto simulado 2",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.990011163013534,
+            "longitude": -73.897379319657,
+            "source": "simulated_within_lot"
+          }
+        },
+        {
+          "id": "17764914-eeb9-40e4-a742-cf7451530bfc",
+          "label": "Punto simulado 3",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.989726697808121,
+            "longitude": -73.89774001080121,
+            "source": "simulated_within_lot"
+          }
+        },
+        {
+          "id": "c02745c9-b123-4c67-aecb-3c51c0bf2b32",
+          "label": "Punto simulado 4",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.989442232602707,
+            "longitude": -73.89810070194545,
+            "source": "simulated_within_lot"
+          }
+        },
+        {
+          "id": "0724bf7f-bd89-45f5-a1c4-b480d2c69d24",
+          "label": "Punto simulado 5",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.989442232602707,
+            "longitude": -73.897379319657,
+            "source": "simulated_within_lot"
+          }
+        }
+      ],
+      "completed": 0,
+      "revision": 1,
+      "created_at": "2026-10-24T08:41:02.772104457Z",
+      "active_ms": 0,
+      "navigation_mode": "timed_simulation",
+      "simulated": true,
+      "nominal_robot_autonomy_hours": 10,
+      "simulation_point_seconds": 5,
+      "lot_boundary": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.89828104751756,
+              4.9893
+            ],
+            [
+              -73.89719897408489,
+              4.9893
+            ],
+            [
+              -73.89719897408489,
+              4.990153395616241
+            ],
+            [
+              -73.89828104751756,
+              4.990153395616241
+            ],
+            [
+              -73.89828104751756,
+              4.9893
+            ]
+          ]
+        ]
+      },
+      "display_path": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -73.89810070194545,
+            4.990011163013534
+          ],
+          [
+            -73.897379319657,
+            4.990011163013534
+          ],
+          [
+            -73.89774001080121,
+            4.989726697808121
+          ],
+          [
+            -73.89810070194545,
+            4.989442232602707
+          ],
+          [
+            -73.897379319657,
+            4.989442232602707
+          ]
+        ]
+      },
+      "geometry_source": "https:\/\/arandanos-dashboard.vercel.app\/api\/lotes",
+      "geometry_fetched_at": "2026-10-24T08:32:47.703943+00:00",
+      "geometry_verified_on_ground": false,
+      "display_geometry_source": "simulated_within_dashboard_lot",
+      "updated_at": "2026-10-24T08:41:02.772957730Z"
+    },
+    "simulated": true,
+    "simulation_scope": "route_progress_only",
+    "photo_base64": null
+  },
+  {
+    "id": "39fdf7fb-d857-4253-8be3-3cdd2c289a5d",
+    "schema_version": 2,
+    "type": "route_snapshot",
+    "captured_at": "2026-10-24T08:41:02.774043478Z",
+    "route": {
+      "id": "0325df41-d30b-4597-a84e-44f6c177dbe3",
+      "plan_id": "3f5932e5-ed76-4ae6-9113-eab1b68dccf1",
+      "lot_id": "L01",
+      "name": "Demo lote L01",
+      "phase": "active",
+      "waypoints": [
+        {
+          "id": "a12db0e7-465c-4e06-a75d-cb645f17a604",
+          "label": "Punto simulado 1",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.990011163013534,
+            "longitude": -73.8991421976244,
+            "source": "simulated_within_lot"
+          }
+        },
+        {
+          "id": "cae834c1-a435-4c43-98a0-6bc8569a42ba",
+          "label": "Punto simulado 2",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.990011163013534,
+            "longitude": -73.898510988122,
+            "source": "simulated_within_lot"
+          }
+        },
+        {
+          "id": "bc462739-e058-4af5-938c-570500ba7ebf",
+          "label": "Punto simulado 3",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.989726697808121,
+            "longitude": -73.8988265928732,
+            "source": "simulated_within_lot"
+          }
+        },
+        {
+          "id": "27c114a0-337c-4d70-80a7-8eb26821c045",
+          "label": "Punto simulado 4",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.989442232602707,
+            "longitude": -73.8991421976244,
+            "source": "simulated_within_lot"
+          }
+        },
+        {
+          "id": "9de65762-b80b-4e28-af90-10c6ed84f3a0",
+          "label": "Punto simulado 5",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.989442232602707,
+            "longitude": -73.898510988122,
+            "source": "simulated_within_lot"
+          }
+        }
+      ],
+      "completed": 0,
+      "revision": 2,
+      "created_at": "2026-10-24T08:41:02.770540082Z",
+      "active_ms": 0,
+      "navigation_mode": "timed_simulation",
+      "simulated": true,
+      "nominal_robot_autonomy_hours": 10,
+      "simulation_point_seconds": 5,
+      "lot_boundary": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.8993,
+              4.9893
+            ],
+            [
+              -73.8983531857464,
+              4.9893
+            ],
+            [
+              -73.8983531857464,
+              4.990153395616241
+            ],
+            [
+              -73.8993,
+              4.990153395616241
+            ],
+            [
+              -73.8993,
+              4.9893
+            ]
+          ]
+        ]
+      },
+      "display_path": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -73.8991421976244,
+            4.990011163013534
+          ],
+          [
+            -73.898510988122,
+            4.990011163013534
+          ],
+          [
+            -73.8988265928732,
+            4.989726697808121
+          ],
+          [
+            -73.8991421976244,
+            4.989442232602707
+          ],
+          [
+            -73.898510988122,
+            4.989442232602707
+          ]
+        ]
+      },
+      "geometry_source": "https:\/\/arandanos-dashboard.vercel.app\/api\/lotes",
+      "geometry_fetched_at": "2026-10-24T08:32:47.703943+00:00",
+      "geometry_verified_on_ground": false,
+      "display_geometry_source": "simulated_within_dashboard_lot",
+      "updated_at": "2026-10-24T08:41:02.774043478Z",
+      "started_at": "2026-10-24T08:41:02.774027684Z"
+    },
+    "simulated": true,
+    "simulation_scope": "route_progress_only",
+    "photo_base64": null
+  },
+  {
+    "id": "2d48a49d-0d6a-4f63-a781-d366b1cde9b8",
+    "schema_version": 2,
+    "type": "observation",
+    "mission": "Demo lote L01",
+    "captured_at": "2026-10-24T08:41:02.775393606Z",
+    "model_version": "experimental-v5",
+    "scores": {
+      "alternaria": 0.019999999552965164,
+      "botrytis": 0.029999999329447746,
+      "sana": 0.9300000071525574,
+      "trips": 0.019999999552965164
+    },
+    "alert": false,
+    "status": "experimental_requires_review",
+    "capture_mode": "periodic",
+    "photo_filename": null,
+    "photo_mime": null,
+    "location": null,
+    "route_context": {
+      "inspection_id": "0325df41-d30b-4597-a84e-44f6c177dbe3",
+      "plan_id": "3f5932e5-ed76-4ae6-9113-eab1b68dccf1",
+      "lot_id": "L01",
+      "waypoint_id": "a12db0e7-465c-4e06-a75d-cb645f17a604",
+      "location": null,
+      "navigation_mode": "timed_simulation",
+      "simulated": true,
+      "position_source": "timed_simulation",
+      "display_position": {
+        "latitude": 4.990011163013534,
+        "longitude": -73.8991421976244,
+        "source": "simulated_within_lot"
+      }
+    },
+    "device": "android",
+    "crop": "blueberry",
+    "simulated": true,
+    "simulation_scope": "route_progress_only",
+    "photo_base64": null
+  },
+  {
+    "id": "4ee7b1a3-3710-4eda-9815-ee43805e271a",
+    "schema_version": 2,
+    "type": "route_snapshot",
+    "captured_at": "2026-10-24T08:41:02.777835961Z",
+    "route": {
+      "id": "0325df41-d30b-4597-a84e-44f6c177dbe3",
+      "plan_id": "3f5932e5-ed76-4ae6-9113-eab1b68dccf1",
+      "lot_id": "L01",
+      "name": "Demo lote L01",
+      "phase": "active",
+      "waypoints": [
+        {
+          "id": "a12db0e7-465c-4e06-a75d-cb645f17a604",
+          "label": "Punto simulado 1",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.990011163013534,
+            "longitude": -73.8991421976244,
+            "source": "simulated_within_lot"
+          },
+          "reviewed_at": "2026-10-24T08:41:02.777816602Z",
+          "completion_source": "timed_simulation"
+        },
+        {
+          "id": "cae834c1-a435-4c43-98a0-6bc8569a42ba",
+          "label": "Punto simulado 2",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.990011163013534,
+            "longitude": -73.898510988122,
+            "source": "simulated_within_lot"
+          }
+        },
+        {
+          "id": "bc462739-e058-4af5-938c-570500ba7ebf",
+          "label": "Punto simulado 3",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.989726697808121,
+            "longitude": -73.8988265928732,
+            "source": "simulated_within_lot"
+          }
+        },
+        {
+          "id": "27c114a0-337c-4d70-80a7-8eb26821c045",
+          "label": "Punto simulado 4",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.989442232602707,
+            "longitude": -73.8991421976244,
+            "source": "simulated_within_lot"
+          }
+        },
+        {
+          "id": "9de65762-b80b-4e28-af90-10c6ed84f3a0",
+          "label": "Punto simulado 5",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.989442232602707,
+            "longitude": -73.898510988122,
+            "source": "simulated_within_lot"
+          }
+        }
+      ],
+      "completed": 1,
+      "revision": 3,
+      "created_at": "2026-10-24T08:41:02.770540082Z",
+      "active_ms": 0,
+      "navigation_mode": "timed_simulation",
+      "simulated": true,
+      "nominal_robot_autonomy_hours": 10,
+      "simulation_point_seconds": 5,
+      "lot_boundary": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.8993,
+              4.9893
+            ],
+            [
+              -73.8983531857464,
+              4.9893
+            ],
+            [
+              -73.8983531857464,
+              4.990153395616241
+            ],
+            [
+              -73.8993,
+              4.990153395616241
+            ],
+            [
+              -73.8993,
+              4.9893
+            ]
+          ]
+        ]
+      },
+      "display_path": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -73.8991421976244,
+            4.990011163013534
+          ],
+          [
+            -73.898510988122,
+            4.990011163013534
+          ],
+          [
+            -73.8988265928732,
+            4.989726697808121
+          ],
+          [
+            -73.8991421976244,
+            4.989442232602707
+          ],
+          [
+            -73.898510988122,
+            4.989442232602707
+          ]
+        ]
+      },
+      "geometry_source": "https:\/\/arandanos-dashboard.vercel.app\/api\/lotes",
+      "geometry_fetched_at": "2026-10-24T08:32:47.703943+00:00",
+      "geometry_verified_on_ground": false,
+      "display_geometry_source": "simulated_within_dashboard_lot",
+      "updated_at": "2026-10-24T08:41:02.777835961Z",
+      "started_at": "2026-10-24T08:41:02.774027684Z"
+    },
+    "simulated": true,
+    "simulation_scope": "route_progress_only",
+    "photo_base64": null
+  },
+  {
+    "id": "b5e0b27f-fbcd-4258-996c-5e458ff2e930",
+    "schema_version": 2,
+    "type": "route_snapshot",
+    "captured_at": "2026-10-24T08:41:02.778878995Z",
+    "route": {
+      "id": "0325df41-d30b-4597-a84e-44f6c177dbe3",
+      "plan_id": "3f5932e5-ed76-4ae6-9113-eab1b68dccf1",
+      "lot_id": "L01",
+      "name": "Demo lote L01",
+      "phase": "paused",
+      "waypoints": [
+        {
+          "id": "a12db0e7-465c-4e06-a75d-cb645f17a604",
+          "label": "Punto simulado 1",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.990011163013534,
+            "longitude": -73.8991421976244,
+            "source": "simulated_within_lot"
+          },
+          "reviewed_at": "2026-10-24T08:41:02.777816602Z",
+          "completion_source": "timed_simulation"
+        },
+        {
+          "id": "cae834c1-a435-4c43-98a0-6bc8569a42ba",
+          "label": "Punto simulado 2",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.990011163013534,
+            "longitude": -73.898510988122,
+            "source": "simulated_within_lot"
+          }
+        },
+        {
+          "id": "bc462739-e058-4af5-938c-570500ba7ebf",
+          "label": "Punto simulado 3",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.989726697808121,
+            "longitude": -73.8988265928732,
+            "source": "simulated_within_lot"
+          }
+        },
+        {
+          "id": "27c114a0-337c-4d70-80a7-8eb26821c045",
+          "label": "Punto simulado 4",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.989442232602707,
+            "longitude": -73.8991421976244,
+            "source": "simulated_within_lot"
+          }
+        },
+        {
+          "id": "9de65762-b80b-4e28-af90-10c6ed84f3a0",
+          "label": "Punto simulado 5",
+          "source": "timed_simulation",
+          "reference_event_id": null,
+          "location": null,
+          "display_position": {
+            "latitude": 4.989442232602707,
+            "longitude": -73.898510988122,
+            "source": "simulated_within_lot"
+          }
+        }
+      ],
+      "completed": 1,
+      "revision": 4,
+      "created_at": "2026-10-24T08:41:02.770540082Z",
+      "active_ms": 5000,
+      "navigation_mode": "timed_simulation",
+      "simulated": true,
+      "nominal_robot_autonomy_hours": 10,
+      "simulation_point_seconds": 5,
+      "lot_boundary": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.8993,
+              4.9893
+            ],
+            [
+              -73.8983531857464,
+              4.9893
+            ],
+            [
+              -73.8983531857464,
+              4.990153395616241
+            ],
+            [
+              -73.8993,
+              4.990153395616241
+            ],
+            [
+              -73.8993,
+              4.9893
+            ]
+          ]
+        ]
+      },
+      "display_path": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -73.8991421976244,
+            4.990011163013534
+          ],
+          [
+            -73.898510988122,
+            4.990011163013534
+          ],
+          [
+            -73.8988265928732,
+            4.989726697808121
+          ],
+          [
+            -73.8991421976244,
+            4.989442232602707
+          ],
+          [
+            -73.898510988122,
+            4.989442232602707
+          ]
+        ]
+      },
+      "geometry_source": "https:\/\/arandanos-dashboard.vercel.app\/api\/lotes",
+      "geometry_fetched_at": "2026-10-24T08:32:47.703943+00:00",
+      "geometry_verified_on_ground": false,
+      "display_geometry_source": "simulated_within_dashboard_lot",
+      "updated_at": "2026-10-24T08:41:02.778878995Z",
+      "started_at": "2026-10-24T08:41:02.774027684Z"
+    },
+    "simulated": true,
+    "simulation_scope": "route_progress_only",
+    "photo_base64": null
+  }
+]

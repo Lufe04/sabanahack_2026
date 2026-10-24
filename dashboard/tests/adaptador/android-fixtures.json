@@ -1,0 +1,266 @@
+[
+  {
+    "id": "8c844be7-3b35-435c-b734-7f46836f6329",
+    "schema_version": 2,
+    "type": "route_snapshot",
+    "captured_at": "2026-10-24T08:02:11.023661135Z",
+    "route": {
+      "id": "69005ef1-83e6-4275-84bd-28bb17b66ee4",
+      "plan_id": "1ca9e282-ef93-4e49-8f21-958ef901124d",
+      "lot_id": "L01",
+      "name": "Prueba de contrato",
+      "phase": "recording",
+      "waypoints": [],
+      "completed": 0,
+      "revision": 1,
+      "created_at": "2026-10-24T08:02:11.023616659Z",
+      "active_ms": 0,
+      "navigation_mode": "manual_checkpoints_gps_optional",
+      "simulated": false,
+      "nominal_robot_autonomy_hours": 10,
+      "updated_at": "2026-10-24T08:02:11.023661135Z"
+    },
+    "simulated": false,
+    "simulation_scope": null,
+    "photo_base64": null
+  },
+  {
+    "id": "341cd59d-552c-4457-bc9a-b469805c1437",
+    "schema_version": 2,
+    "type": "observation",
+    "mission": "Prueba de contrato",
+    "captured_at": "2026-10-24T08:02:11.064897347Z",
+    "model_version": "experimental-v5",
+    "scores": {
+      "alternaria": 0.019999999552965164,
+      "botrytis": 0.029999999329447746,
+      "sana": 0.9300000071525574,
+      "trips": 0.019999999552965164
+    },
+    "alert": false,
+    "status": "experimental_requires_review",
+    "capture_mode": "route_reference",
+    "photo_filename": "341cd59d-552c-4457-bc9a-b469805c1437.jpg",
+    "photo_mime": "image\/jpeg",
+    "location": null,
+    "route_context": {
+      "inspection_id": "69005ef1-83e6-4275-84bd-28bb17b66ee4",
+      "plan_id": "1ca9e282-ef93-4e49-8f21-958ef901124d",
+      "lot_id": "L01",
+      "waypoint_id": "7e42bc0d-ee08-456b-ac0d-cb447b7618cf",
+      "location": null,
+      "navigation_mode": "manual_checkpoints_gps_optional",
+      "simulated": false,
+      "position_source": "manual_checkpoint"
+    },
+    "device": "android",
+    "crop": "blueberry",
+    "simulated": false,
+    "simulation_scope": null,
+    "photo_base64": "\/9j\/4AAQSkZJRgABAgAAAQABAAD\/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD\/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD\/wAARCAAYABgDASIAAhEBAxEB\/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL\/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6\/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL\/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6\/9oADAMBAAIRAxEAPwD8qqKKKACiiigAooooAKKKKAP\/2Q=="
+  },
+  {
+    "id": "0cb9728e-bd90-40b1-a4e6-97df3f9e61b4",
+    "schema_version": 2,
+    "type": "route_snapshot",
+    "captured_at": "2026-10-24T08:02:11.099188500Z",
+    "route": {
+      "id": "69005ef1-83e6-4275-84bd-28bb17b66ee4",
+      "plan_id": "1ca9e282-ef93-4e49-8f21-958ef901124d",
+      "lot_id": "L01",
+      "name": "Prueba de contrato",
+      "phase": "recording",
+      "waypoints": [
+        {
+          "id": "7e42bc0d-ee08-456b-ac0d-cb447b7618cf",
+          "label": "Punto 1",
+          "reference_event_id": "341cd59d-552c-4457-bc9a-b469805c1437",
+          "location": null
+        }
+      ],
+      "completed": 0,
+      "revision": 2,
+      "created_at": "2026-10-24T08:02:11.023616659Z",
+      "active_ms": 0,
+      "navigation_mode": "manual_checkpoints_gps_optional",
+      "simulated": false,
+      "nominal_robot_autonomy_hours": 10,
+      "updated_at": "2026-10-24T08:02:11.099188500Z"
+    },
+    "simulated": false,
+    "simulation_scope": null,
+    "photo_base64": null
+  },
+  {
+    "id": "ffc1c180-3aee-4599-9ddb-433e83eaef09",
+    "schema_version": 2,
+    "type": "route_snapshot",
+    "captured_at": "2026-10-24T08:02:11.100381656Z",
+    "route": {
+      "id": "69005ef1-83e6-4275-84bd-28bb17b66ee4",
+      "plan_id": "1ca9e282-ef93-4e49-8f21-958ef901124d",
+      "lot_id": "L01",
+      "name": "Prueba de contrato",
+      "phase": "ready",
+      "waypoints": [
+        {
+          "id": "7e42bc0d-ee08-456b-ac0d-cb447b7618cf",
+          "label": "Punto 1",
+          "reference_event_id": "341cd59d-552c-4457-bc9a-b469805c1437",
+          "location": null
+        }
+      ],
+      "completed": 0,
+      "revision": 3,
+      "created_at": "2026-10-24T08:02:11.023616659Z",
+      "active_ms": 0,
+      "navigation_mode": "manual_checkpoints_gps_optional",
+      "simulated": false,
+      "nominal_robot_autonomy_hours": 10,
+      "updated_at": "2026-10-24T08:02:11.100381656Z"
+    },
+    "simulated": false,
+    "simulation_scope": null,
+    "photo_base64": null
+  },
+  {
+    "id": "d5075d05-3284-419d-aac0-fadfb305baa9",
+    "schema_version": 2,
+    "type": "route_snapshot",
+    "captured_at": "2026-10-24T08:02:11.101014433Z",
+    "route": {
+      "id": "69005ef1-83e6-4275-84bd-28bb17b66ee4",
+      "plan_id": "1ca9e282-ef93-4e49-8f21-958ef901124d",
+      "lot_id": "L01",
+      "name": "Prueba de contrato",
+      "phase": "active",
+      "waypoints": [
+        {
+          "id": "7e42bc0d-ee08-456b-ac0d-cb447b7618cf",
+          "label": "Punto 1",
+          "reference_event_id": "341cd59d-552c-4457-bc9a-b469805c1437",
+          "location": null
+        }
+      ],
+      "completed": 0,
+      "revision": 4,
+      "created_at": "2026-10-24T08:02:11.023616659Z",
+      "active_ms": 0,
+      "navigation_mode": "manual_checkpoints_gps_optional",
+      "simulated": false,
+      "nominal_robot_autonomy_hours": 10,
+      "updated_at": "2026-10-24T08:02:11.101014433Z",
+      "started_at": "2026-10-24T08:02:11.100999490Z"
+    },
+    "simulated": false,
+    "simulation_scope": null,
+    "photo_base64": null
+  },
+  {
+    "id": "a02a0c0f-e8e0-4c51-a84d-51c0faa84075",
+    "schema_version": 2,
+    "type": "observation",
+    "mission": "Revisión",
+    "captured_at": "2026-10-24T08:02:11.101631045Z",
+    "model_version": "experimental-v5",
+    "scores": {
+      "alternaria": 0.019999999552965164,
+      "botrytis": 0.029999999329447746,
+      "sana": 0.9300000071525574,
+      "trips": 0.019999999552965164
+    },
+    "alert": false,
+    "status": "experimental_requires_review",
+    "capture_mode": "periodic",
+    "photo_filename": null,
+    "photo_mime": null,
+    "location": null,
+    "route_context": {
+      "inspection_id": "69005ef1-83e6-4275-84bd-28bb17b66ee4",
+      "plan_id": "1ca9e282-ef93-4e49-8f21-958ef901124d",
+      "lot_id": "L01",
+      "waypoint_id": "7e42bc0d-ee08-456b-ac0d-cb447b7618cf",
+      "location": null,
+      "navigation_mode": "manual_checkpoints_gps_optional",
+      "simulated": false,
+      "position_source": "manual_checkpoint"
+    },
+    "device": "android",
+    "crop": "blueberry",
+    "simulated": false,
+    "simulation_scope": null,
+    "photo_base64": null
+  },
+  {
+    "id": "f02c72f3-daf6-47c1-8c24-5bd3388419d7",
+    "schema_version": 2,
+    "type": "route_snapshot",
+    "captured_at": "2026-10-24T08:02:11.102379243Z",
+    "route": {
+      "id": "69005ef1-83e6-4275-84bd-28bb17b66ee4",
+      "plan_id": "1ca9e282-ef93-4e49-8f21-958ef901124d",
+      "lot_id": "L01",
+      "name": "Prueba de contrato",
+      "phase": "completed",
+      "waypoints": [
+        {
+          "id": "7e42bc0d-ee08-456b-ac0d-cb447b7618cf",
+          "label": "Punto 1",
+          "reference_event_id": "341cd59d-552c-4457-bc9a-b469805c1437",
+          "location": null,
+          "reviewed_at": "2026-10-24T08:02:11.102355488Z",
+          "completion_source": "manual"
+        }
+      ],
+      "completed": 1,
+      "revision": 5,
+      "created_at": "2026-10-24T08:02:11.023616659Z",
+      "active_ms": 0,
+      "navigation_mode": "manual_checkpoints_gps_optional",
+      "simulated": false,
+      "nominal_robot_autonomy_hours": 10,
+      "updated_at": "2026-10-24T08:02:11.102379243Z",
+      "started_at": "2026-10-24T08:02:11.100999490Z",
+      "finished_at": "2026-10-24T08:02:11.102370149Z"
+    },
+    "simulated": false,
+    "simulation_scope": null,
+    "photo_base64": null
+  },
+  {
+    "id": "bc391ebf-037a-4cdf-a4d2-6a20c244a37d",
+    "schema_version": 2,
+    "type": "route_snapshot",
+    "captured_at": "2026-10-24T08:02:11.103000182Z",
+    "route": {
+      "id": "69005ef1-83e6-4275-84bd-28bb17b66ee4",
+      "plan_id": "1ca9e282-ef93-4e49-8f21-958ef901124d",
+      "lot_id": "L01",
+      "name": "Prueba de contrato",
+      "phase": "completed",
+      "waypoints": [
+        {
+          "id": "7e42bc0d-ee08-456b-ac0d-cb447b7618cf",
+          "label": "Punto 1",
+          "reference_event_id": "341cd59d-552c-4457-bc9a-b469805c1437",
+          "location": null,
+          "reviewed_at": "2026-10-24T08:02:11.102355488Z",
+          "completion_source": "manual"
+        }
+      ],
+      "completed": 1,
+      "revision": 6,
+      "created_at": "2026-10-24T08:02:11.023616659Z",
+      "active_ms": 5000,
+      "navigation_mode": "manual_checkpoints_gps_optional",
+      "simulated": false,
+      "nominal_robot_autonomy_hours": 10,
+      "updated_at": "2026-10-24T08:02:11.103000182Z",
+      "started_at": "2026-10-24T08:02:11.100999490Z",
+      "finished_at": "2026-10-24T08:02:11.102370149Z"
+    },
+    "simulated": false,
+    "simulation_scope": null,
+    "photo_base64": null
+  }
+]

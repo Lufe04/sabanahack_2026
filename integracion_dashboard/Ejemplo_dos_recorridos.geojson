@@ -1,0 +1,515 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "0325df41-d30b-4597-a84e-44f6c177dbe3:boundary",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.8993,
+              4.9893
+            ],
+            [
+              -73.8983531857464,
+              4.9893
+            ],
+            [
+              -73.8983531857464,
+              4.990153395616241
+            ],
+            [
+              -73.8993,
+              4.990153395616241
+            ],
+            [
+              -73.8993,
+              4.9893
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "inspection_id": "0325df41-d30b-4597-a84e-44f6c177dbe3",
+        "plan_id": "3f5932e5-ed76-4ae6-9113-eab1b68dccf1",
+        "lot_id": "L01",
+        "name": "Demo lote L01",
+        "phase": "paused",
+        "completed": 1,
+        "total": 5,
+        "simulated": true,
+        "revision": 4,
+        "geometry_source": "https:\/\/arandanos-dashboard.vercel.app\/api\/lotes",
+        "kind": "boundary"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "0325df41-d30b-4597-a84e-44f6c177dbe3:route",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -73.8991421976244,
+            4.990011163013534
+          ],
+          [
+            -73.898510988122,
+            4.990011163013534
+          ],
+          [
+            -73.8988265928732,
+            4.989726697808121
+          ],
+          [
+            -73.8991421976244,
+            4.989442232602707
+          ],
+          [
+            -73.898510988122,
+            4.989442232602707
+          ]
+        ]
+      },
+      "properties": {
+        "inspection_id": "0325df41-d30b-4597-a84e-44f6c177dbe3",
+        "plan_id": "3f5932e5-ed76-4ae6-9113-eab1b68dccf1",
+        "lot_id": "L01",
+        "name": "Demo lote L01",
+        "phase": "paused",
+        "completed": 1,
+        "total": 5,
+        "simulated": true,
+        "revision": 4,
+        "geometry_source": "https:\/\/arandanos-dashboard.vercel.app\/api\/lotes",
+        "kind": "route"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "0325df41-d30b-4597-a84e-44f6c177dbe3:a12db0e7-465c-4e06-a75d-cb645f17a604",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.8991421976244,
+          4.990011163013534
+        ]
+      },
+      "properties": {
+        "inspection_id": "0325df41-d30b-4597-a84e-44f6c177dbe3",
+        "plan_id": "3f5932e5-ed76-4ae6-9113-eab1b68dccf1",
+        "lot_id": "L01",
+        "name": "Demo lote L01",
+        "phase": "paused",
+        "completed": 1,
+        "total": 5,
+        "simulated": true,
+        "revision": 4,
+        "geometry_source": "https:\/\/arandanos-dashboard.vercel.app\/api\/lotes",
+        "kind": "waypoint",
+        "waypoint_id": "a12db0e7-465c-4e06-a75d-cb645f17a604",
+        "index": 1,
+        "status": "reviewed",
+        "position_source": "simulated_within_lot"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "0325df41-d30b-4597-a84e-44f6c177dbe3:cae834c1-a435-4c43-98a0-6bc8569a42ba",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.898510988122,
+          4.990011163013534
+        ]
+      },
+      "properties": {
+        "inspection_id": "0325df41-d30b-4597-a84e-44f6c177dbe3",
+        "plan_id": "3f5932e5-ed76-4ae6-9113-eab1b68dccf1",
+        "lot_id": "L01",
+        "name": "Demo lote L01",
+        "phase": "paused",
+        "completed": 1,
+        "total": 5,
+        "simulated": true,
+        "revision": 4,
+        "geometry_source": "https:\/\/arandanos-dashboard.vercel.app\/api\/lotes",
+        "kind": "waypoint",
+        "waypoint_id": "cae834c1-a435-4c43-98a0-6bc8569a42ba",
+        "index": 2,
+        "status": "current",
+        "position_source": "simulated_within_lot"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "0325df41-d30b-4597-a84e-44f6c177dbe3:position",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.898510988122,
+          4.990011163013534
+        ]
+      },
+      "properties": {
+        "inspection_id": "0325df41-d30b-4597-a84e-44f6c177dbe3",
+        "plan_id": "3f5932e5-ed76-4ae6-9113-eab1b68dccf1",
+        "lot_id": "L01",
+        "name": "Demo lote L01",
+        "phase": "paused",
+        "completed": 1,
+        "total": 5,
+        "simulated": true,
+        "revision": 4,
+        "geometry_source": "https:\/\/arandanos-dashboard.vercel.app\/api\/lotes",
+        "kind": "position",
+        "waypoint_id": "cae834c1-a435-4c43-98a0-6bc8569a42ba",
+        "index": 2,
+        "status": "current",
+        "position_source": "simulated_within_lot"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "0325df41-d30b-4597-a84e-44f6c177dbe3:bc462739-e058-4af5-938c-570500ba7ebf",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.8988265928732,
+          4.989726697808121
+        ]
+      },
+      "properties": {
+        "inspection_id": "0325df41-d30b-4597-a84e-44f6c177dbe3",
+        "plan_id": "3f5932e5-ed76-4ae6-9113-eab1b68dccf1",
+        "lot_id": "L01",
+        "name": "Demo lote L01",
+        "phase": "paused",
+        "completed": 1,
+        "total": 5,
+        "simulated": true,
+        "revision": 4,
+        "geometry_source": "https:\/\/arandanos-dashboard.vercel.app\/api\/lotes",
+        "kind": "waypoint",
+        "waypoint_id": "bc462739-e058-4af5-938c-570500ba7ebf",
+        "index": 3,
+        "status": "pending",
+        "position_source": "simulated_within_lot"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "0325df41-d30b-4597-a84e-44f6c177dbe3:27c114a0-337c-4d70-80a7-8eb26821c045",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.8991421976244,
+          4.989442232602707
+        ]
+      },
+      "properties": {
+        "inspection_id": "0325df41-d30b-4597-a84e-44f6c177dbe3",
+        "plan_id": "3f5932e5-ed76-4ae6-9113-eab1b68dccf1",
+        "lot_id": "L01",
+        "name": "Demo lote L01",
+        "phase": "paused",
+        "completed": 1,
+        "total": 5,
+        "simulated": true,
+        "revision": 4,
+        "geometry_source": "https:\/\/arandanos-dashboard.vercel.app\/api\/lotes",
+        "kind": "waypoint",
+        "waypoint_id": "27c114a0-337c-4d70-80a7-8eb26821c045",
+        "index": 4,
+        "status": "pending",
+        "position_source": "simulated_within_lot"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "0325df41-d30b-4597-a84e-44f6c177dbe3:9de65762-b80b-4e28-af90-10c6ed84f3a0",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.898510988122,
+          4.989442232602707
+        ]
+      },
+      "properties": {
+        "inspection_id": "0325df41-d30b-4597-a84e-44f6c177dbe3",
+        "plan_id": "3f5932e5-ed76-4ae6-9113-eab1b68dccf1",
+        "lot_id": "L01",
+        "name": "Demo lote L01",
+        "phase": "paused",
+        "completed": 1,
+        "total": 5,
+        "simulated": true,
+        "revision": 4,
+        "geometry_source": "https:\/\/arandanos-dashboard.vercel.app\/api\/lotes",
+        "kind": "waypoint",
+        "waypoint_id": "9de65762-b80b-4e28-af90-10c6ed84f3a0",
+        "index": 5,
+        "status": "pending",
+        "position_source": "simulated_within_lot"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "fc2ba268-b779-4669-bcb8-04d388f24527:boundary",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.89828104751756,
+              4.9893
+            ],
+            [
+              -73.89719897408489,
+              4.9893
+            ],
+            [
+              -73.89719897408489,
+              4.990153395616241
+            ],
+            [
+              -73.89828104751756,
+              4.990153395616241
+            ],
+            [
+              -73.89828104751756,
+              4.9893
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "inspection_id": "fc2ba268-b779-4669-bcb8-04d388f24527",
+        "plan_id": "d99d4a36-4aad-454c-a843-f550a8b4fe71",
+        "lot_id": "L02",
+        "name": "Demo lote L02",
+        "phase": "ready",
+        "completed": 0,
+        "total": 5,
+        "simulated": true,
+        "revision": 1,
+        "geometry_source": "https:\/\/arandanos-dashboard.vercel.app\/api\/lotes",
+        "kind": "boundary"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "fc2ba268-b779-4669-bcb8-04d388f24527:route",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -73.89810070194545,
+            4.990011163013534
+          ],
+          [
+            -73.897379319657,
+            4.990011163013534
+          ],
+          [
+            -73.89774001080121,
+            4.989726697808121
+          ],
+          [
+            -73.89810070194545,
+            4.989442232602707
+          ],
+          [
+            -73.897379319657,
+            4.989442232602707
+          ]
+        ]
+      },
+      "properties": {
+        "inspection_id": "fc2ba268-b779-4669-bcb8-04d388f24527",
+        "plan_id": "d99d4a36-4aad-454c-a843-f550a8b4fe71",
+        "lot_id": "L02",
+        "name": "Demo lote L02",
+        "phase": "ready",
+        "completed": 0,
+        "total": 5,
+        "simulated": true,
+        "revision": 1,
+        "geometry_source": "https:\/\/arandanos-dashboard.vercel.app\/api\/lotes",
+        "kind": "route"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "fc2ba268-b779-4669-bcb8-04d388f24527:fdd6a338-c9d8-46be-a453-feaf925038ac",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.89810070194545,
+          4.990011163013534
+        ]
+      },
+      "properties": {
+        "inspection_id": "fc2ba268-b779-4669-bcb8-04d388f24527",
+        "plan_id": "d99d4a36-4aad-454c-a843-f550a8b4fe71",
+        "lot_id": "L02",
+        "name": "Demo lote L02",
+        "phase": "ready",
+        "completed": 0,
+        "total": 5,
+        "simulated": true,
+        "revision": 1,
+        "geometry_source": "https:\/\/arandanos-dashboard.vercel.app\/api\/lotes",
+        "kind": "waypoint",
+        "waypoint_id": "fdd6a338-c9d8-46be-a453-feaf925038ac",
+        "index": 1,
+        "status": "current",
+        "position_source": "simulated_within_lot"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "fc2ba268-b779-4669-bcb8-04d388f24527:position",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.89810070194545,
+          4.990011163013534
+        ]
+      },
+      "properties": {
+        "inspection_id": "fc2ba268-b779-4669-bcb8-04d388f24527",
+        "plan_id": "d99d4a36-4aad-454c-a843-f550a8b4fe71",
+        "lot_id": "L02",
+        "name": "Demo lote L02",
+        "phase": "ready",
+        "completed": 0,
+        "total": 5,
+        "simulated": true,
+        "revision": 1,
+        "geometry_source": "https:\/\/arandanos-dashboard.vercel.app\/api\/lotes",
+        "kind": "position",
+        "waypoint_id": "fdd6a338-c9d8-46be-a453-feaf925038ac",
+        "index": 1,
+        "status": "current",
+        "position_source": "simulated_within_lot"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "fc2ba268-b779-4669-bcb8-04d388f24527:ad02662b-b5de-4ed6-8f71-1b7b212ec0a4",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.897379319657,
+          4.990011163013534
+        ]
+      },
+      "properties": {
+        "inspection_id": "fc2ba268-b779-4669-bcb8-04d388f24527",
+        "plan_id": "d99d4a36-4aad-454c-a843-f550a8b4fe71",
+        "lot_id": "L02",
+        "name": "Demo lote L02",
+        "phase": "ready",
+        "completed": 0,
+        "total": 5,
+        "simulated": true,
+        "revision": 1,
+        "geometry_source": "https:\/\/arandanos-dashboard.vercel.app\/api\/lotes",
+        "kind": "waypoint",
+        "waypoint_id": "ad02662b-b5de-4ed6-8f71-1b7b212ec0a4",
+        "index": 2,
+        "status": "pending",
+        "position_source": "simulated_within_lot"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "fc2ba268-b779-4669-bcb8-04d388f24527:17764914-eeb9-40e4-a742-cf7451530bfc",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.89774001080121,
+          4.989726697808121
+        ]
+      },
+      "properties": {
+        "inspection_id": "fc2ba268-b779-4669-bcb8-04d388f24527",
+        "plan_id": "d99d4a36-4aad-454c-a843-f550a8b4fe71",
+        "lot_id": "L02",
+        "name": "Demo lote L02",
+        "phase": "ready",
+        "completed": 0,
+        "total": 5,
+        "simulated": true,
+        "revision": 1,
+        "geometry_source": "https:\/\/arandanos-dashboard.vercel.app\/api\/lotes",
+        "kind": "waypoint",
+        "waypoint_id": "17764914-eeb9-40e4-a742-cf7451530bfc",
+        "index": 3,
+        "status": "pending",
+        "position_source": "simulated_within_lot"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "fc2ba268-b779-4669-bcb8-04d388f24527:c02745c9-b123-4c67-aecb-3c51c0bf2b32",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.89810070194545,
+          4.989442232602707
+        ]
+      },
+      "properties": {
+        "inspection_id": "fc2ba268-b779-4669-bcb8-04d388f24527",
+        "plan_id": "d99d4a36-4aad-454c-a843-f550a8b4fe71",
+        "lot_id": "L02",
+        "name": "Demo lote L02",
+        "phase": "ready",
+        "completed": 0,
+        "total": 5,
+        "simulated": true,
+        "revision": 1,
+        "geometry_source": "https:\/\/arandanos-dashboard.vercel.app\/api\/lotes",
+        "kind": "waypoint",
+        "waypoint_id": "c02745c9-b123-4c67-aecb-3c51c0bf2b32",
+        "index": 4,
+        "status": "pending",
+        "position_source": "simulated_within_lot"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "fc2ba268-b779-4669-bcb8-04d388f24527:0724bf7f-bd89-45f5-a1c4-b480d2c69d24",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.897379319657,
+          4.989442232602707
+        ]
+      },
+      "properties": {
+        "inspection_id": "fc2ba268-b779-4669-bcb8-04d388f24527",
+        "plan_id": "d99d4a36-4aad-454c-a843-f550a8b4fe71",
+        "lot_id": "L02",
+        "name": "Demo lote L02",
+        "phase": "ready",
+        "completed": 0,
+        "total": 5,
+        "simulated": true,
+        "revision": 1,
+        "geometry_source": "https:\/\/arandanos-dashboard.vercel.app\/api\/lotes",
+        "kind": "waypoint",
+        "waypoint_id": "0724bf7f-bd89-45f5-a1c4-b480d2c69d24",
+        "index": 5,
+        "status": "pending",
+        "position_source": "simulated_within_lot"
+      }
+    }
+  ],
+  "example": true,
+  "description": "Geometría ilustrativa de dos recorridos simulados sobre contornos del catálogo del dashboard. No representa plantas medidas ni inspecciones reales."
+}
