@@ -48,7 +48,7 @@ export default async function Bloques() {
               <Card className="h-full gap-2 px-4 py-3 transition-colors hover:bg-accent/40">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <div className="font-medium">{l.id} · {l.nombre}</div>
+                    <div className="font-medium">{l.nombre}</div>
                     <div className="text-xs text-muted-foreground">{l.variedad} · {fmtNum(l.hectareas, 2)} ha</div>
                   </div>
                   <RiesgoBadge indice={l.indiceRiesgo} conValor={false} />

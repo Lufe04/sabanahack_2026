@@ -114,7 +114,7 @@ export default async function Hoy() {
               return (
                 <TableRow key={l.id}>
                   <TableCell>
-                    <Link href={`/bloques/${l.id}`} className="font-medium hover:underline">{l.id} · {l.nombre}</Link>
+                    <Link href={`/bloques/${l.id}`} className="font-medium hover:underline">{l.nombre}</Link>
                     <div className="text-xs text-muted-foreground">{l.variedad} · drenaje {l.drenaje}</div>
                   </TableCell>
                   <TableCell className="text-right tabular-nums">

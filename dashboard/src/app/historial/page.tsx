@@ -129,7 +129,7 @@ export default async function Historial({ searchParams }: { searchParams: Promis
           <TableBody>
             {produccion.map((p) => (
               <TableRow key={p.loteId}>
-                <TableCell><Link href={`/bloques/${p.loteId}`} className="font-medium hover:underline">{p.loteId} · {p.nombre}</Link></TableCell>
+                <TableCell><Link href={`/bloques/${p.loteId}`} className="font-medium hover:underline">{p.nombre}</Link></TableCell>
                 <TableCell className="text-right tabular-nums">{fmtNum(p.kgCosechados)} kg</TableCell>
                 <TableCell className="text-right tabular-nums">{fmtNum(p.kgDescartados)} kg</TableCell>
                 <TableCell className="text-right tabular-nums">{fmtPct(p.pctPerdida, 1)}</TableCell>

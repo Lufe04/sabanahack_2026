@@ -105,7 +105,7 @@ export function MapaLotes({ lotes, centro, zoom = 17, alto = 360, interactivo = 
                   </span>
                 ) : (
                   <span className="flex flex-col items-center rounded bg-background/90 px-1.5 py-0.5 text-[11px] leading-tight text-foreground">
-                    <span className="font-medium">{l.id} · {l.nombre}</span>
+                    <span className="font-medium">{l.nombre}</span>
                     <span className="text-muted-foreground">
                       {colores ? texto : `${ETIQUETA_RIESGO[nivel]} ${l.indiceRiesgo}`}
                       {l.eventosActivos ? ` · ${l.eventosActivos} brote${l.eventosActivos > 1 ? "s" : ""}` : ""}

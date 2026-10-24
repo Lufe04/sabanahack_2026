@@ -47,7 +47,7 @@ export default async function Sensores() {
             {[...sensores].sort((a, b) => ORDEN_ESTADO[a.estado] - ORDEN_ESTADO[b.estado] || a.id.localeCompare(b.id)).map((s) => (
               <TableRow key={s.id} className={s.estado === "caido" ? "bg-destructive/5" : undefined}>
                 <TableCell className="font-mono text-xs">{s.id}</TableCell>
-                <TableCell><Link href={`/bloques/${s.loteId}`} className="hover:underline">{s.loteId} · {s.loteNombre}</Link></TableCell>
+                <TableCell><Link href={`/bloques/${s.loteId}`} className="hover:underline">{s.loteNombre}</Link></TableCell>
                 <TableCell>{NOMBRE_SENSOR[s.tipo]}</TableCell>
                 <TableCell><SensorEstadoBadge estado={s.estado} /></TableCell>
                 <TableCell className="text-right tabular-nums">{s.ultimoValor !== null ? `${fmtNum(s.ultimoValor, 1)} ${s.unidad}` : "—"}</TableCell>

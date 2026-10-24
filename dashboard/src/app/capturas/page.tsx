@@ -50,7 +50,7 @@ export default async function Capturas({ searchParams }: { searchParams: Promise
           <span className="text-xs text-muted-foreground">Bloque</span>
           <select id="f-lote" name="lote" defaultValue={filtros.lote ?? ""} className="h-9 rounded-md border border-border bg-background px-2">
             <option value="">Todos</option>
-            {lotes.map((l) => <option key={l.id} value={l.id}>{l.id} · {l.nombre}</option>)}
+            {lotes.map((l) => <option key={l.id} value={l.id}>{l.nombre}</option>)}
           </select>
         </label>
         <label className="grid gap-1">

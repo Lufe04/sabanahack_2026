@@ -58,7 +58,7 @@ export default async function Analitica() {
       <div className="mt-4 grid gap-4 lg:grid-cols-5">
         <Seccion titulo="¿Cuáles bloques se enferman más?" descripcion="Brotes por hectárea en el período. Normalizado por tamaño del bloque." className="lg:col-span-2">
           <BarrasHorizontales
-            datos={porHa.map((r) => ({ etiqueta: `${r.loteId} ${r.nombre}`, valor: r.brotesPorHa, detalle: `${r.brotes} brotes · drenaje ${r.drenaje} · ${r.variedad}` }))}
+            datos={porHa.map((r) => ({ etiqueta: r.nombre, valor: r.brotesPorHa, detalle: `${r.brotes} brotes · drenaje ${r.drenaje} · ${r.variedad}` }))}
             nombreValor="Brotes por ha"
             decimales={1}
           />
@@ -84,7 +84,7 @@ export default async function Analitica() {
             <TableBody>
               {ranking.map((r) => (
                 <TableRow key={r.loteId}>
-                  <TableCell><Link href={`/bloques/${r.loteId}`} className="font-medium hover:underline">{r.loteId} · {r.nombre}</Link></TableCell>
+                  <TableCell><Link href={`/bloques/${r.loteId}`} className="font-medium hover:underline">{r.nombre}</Link></TableCell>
                   <TableCell className="text-right tabular-nums">{r.brotes}</TableCell>
                   <TableCell className="text-right tabular-nums">{r.diasEntreBrotes ? `${fmtNum(r.diasEntreBrotes, 0)} d` : "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">{fmtNum(r.severidadProm, 1)} / 5</TableCell>

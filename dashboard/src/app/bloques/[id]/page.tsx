@@ -46,7 +46,7 @@ export default async function DetalleBloque({ params, searchParams }: { params: 
   return (
     <>
       <Encabezado
-        titulo={<span className="flex flex-wrap items-center gap-3">Bloque {lote.id} · {lote.nombre} <RiesgoBadge indice={lote.indiceRiesgo} /></span>}
+        titulo={<span className="flex flex-wrap items-center gap-3">{lote.nombre} <RiesgoBadge indice={lote.indiceRiesgo} /></span>}
         descripcion={`${lote.variedad} · ${fmtNum(lote.hectareas, 2)} ha · drenaje ${lote.drenaje} · invernadero de ${plano.naves.length} naves y ${plano.camas.length} camas · ${r.plantas.toLocaleString("es-CO")} plantas`}
         acciones={<Link href="/bloques" className="text-sm text-muted-foreground underline">Todos los bloques</Link>}
       />

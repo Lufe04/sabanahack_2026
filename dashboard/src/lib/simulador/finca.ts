@@ -22,6 +22,7 @@ const ANCHOS_M = [105, 120, 110, 125, 100]; // columnas
 const ALTOS_M = [95, 110]; // filas
 const PASILLO_M = 8;
 
+/** Los agricultores identifican los bloques solo por número: el nombre es "Bloque N". */
 type DefLote = {
   id: string;
   nombre: string;
@@ -31,16 +32,16 @@ type DefLote = {
 };
 
 const DEFINICIONES: DefLote[] = [
-  { id: "B01", nombre: "Arrayán", variedad: "Biloxi", fechaSiembra: "2022-03-15", drenaje: "bueno" },
-  { id: "B02", nombre: "Mortiño", variedad: "Biloxi", fechaSiembra: "2022-03-15", drenaje: "bueno" },
-  { id: "B03", nombre: "Sauce", variedad: "Legacy", fechaSiembra: "2021-09-01", drenaje: "regular" },
-  { id: "B04", nombre: "Roble", variedad: "Legacy", fechaSiembra: "2021-09-01", drenaje: "malo" },
-  { id: "B05", nombre: "Aliso", variedad: "Sharpblue", fechaSiembra: "2023-01-20", drenaje: "bueno" },
-  { id: "B06", nombre: "Cedro", variedad: "Emerald", fechaSiembra: "2023-01-20", drenaje: "regular" },
-  { id: "B07", nombre: "Laurel", variedad: "Biloxi", fechaSiembra: "2020-06-10", drenaje: "bueno" },
-  { id: "B08", nombre: "Encenillo", variedad: "Ventura", fechaSiembra: "2022-10-05", drenaje: "malo" },
-  { id: "B09", nombre: "Chicalá", variedad: "Legacy", fechaSiembra: "2023-06-01", drenaje: "bueno" },
-  { id: "B10", nombre: "Guayacán", variedad: "Emerald", fechaSiembra: "2021-02-14", drenaje: "regular" },
+  { id: "B01", nombre: "Bloque 1", variedad: "Biloxi", fechaSiembra: "2022-03-15", drenaje: "bueno" },
+  { id: "B02", nombre: "Bloque 2", variedad: "Biloxi", fechaSiembra: "2022-03-15", drenaje: "bueno" },
+  { id: "B03", nombre: "Bloque 3", variedad: "Legacy", fechaSiembra: "2021-09-01", drenaje: "regular" },
+  { id: "B04", nombre: "Bloque 4", variedad: "Legacy", fechaSiembra: "2021-09-01", drenaje: "malo" },
+  { id: "B05", nombre: "Bloque 5", variedad: "Sharpblue", fechaSiembra: "2023-01-20", drenaje: "bueno" },
+  { id: "B06", nombre: "Bloque 6", variedad: "Emerald", fechaSiembra: "2023-01-20", drenaje: "regular" },
+  { id: "B07", nombre: "Bloque 7", variedad: "Biloxi", fechaSiembra: "2020-06-10", drenaje: "bueno" },
+  { id: "B08", nombre: "Bloque 8", variedad: "Ventura", fechaSiembra: "2022-10-05", drenaje: "malo" },
+  { id: "B09", nombre: "Bloque 9", variedad: "Legacy", fechaSiembra: "2023-06-01", drenaje: "bueno" },
+  { id: "B10", nombre: "Bloque 10", variedad: "Emerald", fechaSiembra: "2021-02-14", drenaje: "regular" },
 ];
 
 function construirLotes(): NuevoLote[] {

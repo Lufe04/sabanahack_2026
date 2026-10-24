@@ -44,7 +44,7 @@ export function LineaTiempoBrotes({ brotes, lotes, desde, hasta }: Props) {
           return (
             <div key={l.id} className="flex items-center gap-2">
               <Link href={`/bloques/${l.id}`} className="w-26 shrink-0 truncate text-xs hover:underline">
-                <span className="font-medium">{l.id}</span> <span className="text-muted-foreground">{l.nombre}</span>
+                <span className="font-medium">{l.nombre}</span>
               </Link>
               <div className="relative h-6 flex-1 rounded bg-muted/50">
                 {marcas.map((m) => (
