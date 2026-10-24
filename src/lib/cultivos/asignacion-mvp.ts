@@ -7,7 +7,7 @@
  * captura completa, aquí se le asigna:
  *
  * - Bloque: el que traiga la app; si no trae, BLOQUE_POR_DEFECTO.
- * - Cama y planta: derivadas del identificador de planta de la misión (o del UUID del
+ * - Nave, cama y planta: derivadas del identificador de planta de la misión (o del UUID del
  *   registro si no hay), de forma determinista: la misma planta cae siempre en el mismo tag.
  *
  * La asignación se guarda en `datos.asignacion_mvp`, separada del contenido original de la
@@ -15,13 +15,21 @@
  * idempotentes. Cuando la app envíe bloque y cama reales, se usan esos y esto deja de actuar.
  */
 import { LOTES } from "@/lib/simulador/finca";
-import { marcoDe } from "@/lib/bloque/plano";
+import { marcoDe, naveDeCama, tagPlanta } from "@/lib/bloque/plano";
 
-/** Bloque donde se ubican las capturas que llegan sin bloque. Misión "arandanos-prueba-01" → L01. */
-export const BLOQUE_POR_DEFECTO = "L01";
+/** Bloque donde se ubican las capturas que llegan sin bloque. Misión "arandanos-prueba-01" → B01. */
+export const BLOQUE_POR_DEFECTO = "B01";
+
+/** Los bloques se llamaban L01 a L10: los códigos viejos se traducen a B01 a B10. */
+export function normalizarBloque(id: unknown): string | null {
+  if (typeof id !== "string") return null;
+  const m = id.trim().match(/^[LB](\d{2})$/i);
+  return m ? `B${m[1]}` : id;
+}
 
 export type AsignacionMvp = {
   bloque: string;
+  nave: number;
   cama: number;
   posicion: number;
   tag: string;
@@ -42,7 +50,7 @@ const n = (v: unknown) => (typeof v === "number" && Number.isInteger(v) && v > 0
 
 export function asignar(evento: Record<string, unknown>): AsignacionMvp {
   const ctx = (evento.route_context ?? {}) as Record<string, unknown>;
-  const loteApp = typeof ctx.lot_id === "string" ? ctx.lot_id : typeof evento.lot_id === "string" ? evento.lot_id : null;
+  const loteApp = normalizarBloque(ctx.lot_id) ?? normalizarBloque(evento.lot_id);
   const lote = LOTES.find((l) => l.id === loteApp) ?? LOTES.find((l) => l.id === BLOQUE_POR_DEFECTO)!;
   const { nCamas, plantasPorCama } = marcoDe(lote.poligono);
 
@@ -58,9 +66,10 @@ export function asignar(evento: Record<string, unknown>): AsignacionMvp {
 
   return {
     bloque: lote.id,
+    nave: naveDeCama(cama),
     cama,
     posicion,
-    tag: `${lote.id}-C${String(cama).padStart(2, "0")}-P${String(posicion).padStart(3, "0")}`,
+    tag: tagPlanta(lote.id, cama, posicion),
     plantaApp,
     origen: { bloque: loteApp ? "app" : "mvp", cama: camaApp && posApp ? "app" : "mvp" },
     fuente: "asignacion_fija_mvp",

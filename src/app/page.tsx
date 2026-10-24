@@ -87,6 +87,7 @@ export default async function Hoy() {
               temperatura: san.get(l.id)?.temperatura ?? null,
               humedadAire: san.get(l.id)?.humedadAire ?? null,
               humedadSuelo: san.get(l.id)?.humedadSuelo ?? null,
+              campos: san.get(l.id)?.campos,
             }))}
             centro={FINCA.centro}
             recorridos={{ inicial: rutas, url: "/recorridos/geojson" }}

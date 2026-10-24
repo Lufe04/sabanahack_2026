@@ -53,6 +53,7 @@ const COLUMNAS_CAPTURA = sql`
   (coalesce(r.datos->'location', r.datos->'route_context'->'location')->>'longitude')::float AS lng,
   (coalesce(r.datos->'location', r.datos->'route_context'->'location')->>'accuracy_m')::float AS "precisionM",
   c.datos->>'name' AS "recorridoNombre",
+  coalesce((r.datos->'asignacion_mvp'->>'nave')::int, ceil((r.datos->'asignacion_mvp'->>'cama')::numeric / 3)::int) AS nave,
   (r.datos->'asignacion_mvp'->>'cama')::int AS cama,
   (r.datos->'asignacion_mvp'->>'posicion')::int AS posicion,
   r.datos->'asignacion_mvp'->>'tag' AS tag,
@@ -84,6 +85,7 @@ export type CapturaFila = {
   precisionM: number | null;
   recorridoNombre: string | null;
   /** Ubicación en el bloque: la app aún no la envía, la completa la asignación fija del MVP. */
+  nave: number | null;
   cama: number | null;
   posicion: number | null;
   tag: string | null;

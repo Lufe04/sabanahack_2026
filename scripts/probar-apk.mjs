@@ -49,7 +49,7 @@ const base = leer("android-fixtures.json").find((e) => e.type === "observation" 
 const cambiado = { ...structuredClone(base), scores: { alternaria: 0.9, botrytis: 0.03, sana: 0.05, trips: 0.02 } };
 revisar("UUID reutilizado con otro contenido", (await post(cambiado)).status === 409);
 const loteMalo = structuredClone(base); loteMalo.id = randomUUID(); loteMalo.route_context.lot_id = "L99";
-revisar("lote fuera del catálogo de /api/lotes", (await post(loteMalo)).status === 422);
+revisar("bloque fuera del catálogo de /api/lotes", (await post(loteMalo)).status === 422);
 const alertaSinFoto = structuredClone(base); alertaSinFoto.id = randomUUID(); alertaSinFoto.alert = true;
 revisar("alerta sin foto", (await post(alertaSinFoto)).status === 400);
 revisar("token inválido", (await post(base, "malo")).status === 401);
@@ -61,11 +61,11 @@ const feed = await get("/api/recorridos");
 const fc = await feed.r.json();
 const tipos = fc.features?.reduce((a, f) => ((a[f.properties.kind] = (a[f.properties.kind] ?? 0) + 1), a), {});
 const lotesFeed = [...new Set((fc.features ?? []).map((f) => f.properties.lot_id))].sort();
-revisar("feed GeoJSON con rutas de L01 y L02", feed.status === 200 && lotesFeed.includes("L01") && lotesFeed.includes("L02") && tipos.position >= 2, JSON.stringify(tipos));
+revisar("feed GeoJSON con rutas de B01 y B02 (la app envió L01 y L02)", feed.status === 200 && lotesFeed.includes("B01") && lotesFeed.includes("B02") && tipos.position >= 2, JSON.stringify(tipos));
 const conPuntaje = (fc.features ?? []).find((f) => f.properties.kind === "waypoint" && f.properties.scores);
 revisar("un punto del mapa trae sus cuatro puntuaciones", !!conPuntaje && Object.keys(conPuntaje.properties.scores).length === 4);
-const filtrado = await (await get("/api/recorridos?lote=L02")).r.json();
-revisar("filtro por lote en el feed", filtrado.features.length > 0 && filtrado.features.every((f) => f.properties.lot_id === "L02"));
+const filtrado = await (await get("/api/recorridos?lote=B02")).r.json();
+revisar("filtro por bloque en el feed", filtrado.features.length > 0 && filtrado.features.every((f) => f.properties.lot_id === "B02"));
 const interno = await get("/recorridos/geojson", null);
 revisar("feed interno del dashboard para el navegador", interno.status === 200);
 

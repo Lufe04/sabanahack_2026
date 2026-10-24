@@ -31,7 +31,7 @@ console.log(
   "Humedad suelo prom:",
   Object.entries(hsProm).map(([k, v]) => `${k}:${(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1)}`).join(" "),
 );
-const horas = h.resumen.filter((r) => r.loteId === "L01").map((r) => r.horasHumedadAlta ?? 0);
+const horas = h.resumen.filter((r) => r.loteId === "B01").map((r) => r.horasHumedadAlta ?? 0);
 console.log("Horas humedad alta prom L01:", (horas.reduce((a, b) => a + b, 0) / horas.length).toFixed(1));
 
 const kg = h.cosechas.reduce((a, c) => a + c.kgCosechados, 0);

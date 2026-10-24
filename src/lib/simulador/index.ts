@@ -14,7 +14,7 @@ import {
 export { FINCA, LOTES, construirSensores, simularDia, eventosAFilas, fechaLocal, isoFecha };
 export { Rng } from "./rng";
 export type { OpcionesSimulacion };
-export const SENSORES_CAIDOS_DEFAULT = (dias: number) => ({ "L06-HA-1": dias - 9, "L03-HS-2": dias - 2 });
+export const SENSORES_CAIDOS_DEFAULT = (dias: number) => ({ "B06-HA-1": dias - 9, "B03-HS-2": dias - 2 });
 export * from "./enfermedades";
 export type { EstadoSimulacion };
 

@@ -52,7 +52,7 @@ export const estadoEventoEnum = pgEnum("estado_evento", ESTADOS_EVENTO);
 
 /** Lote de cultivo dentro de la finca. */
 export const lotes = pgTable("lotes", {
-  id: text("id").primaryKey(), // ej. "L01"
+  id: text("id").primaryKey(), // ej. "B01" (bloque)
   nombre: text("nombre").notNull(),
   variedad: text("variedad").notNull(),
   hectareas: real("hectareas").notNull(),
@@ -69,7 +69,7 @@ export const lotes = pgTable("lotes", {
 export const sensores = pgTable(
   "sensores",
   {
-    id: text("id").primaryKey(), // ej. "L01-HS-1"
+    id: text("id").primaryKey(), // ej. "B01-HS-1"
     loteId: text("lote_id")
       .notNull()
       .references(() => lotes.id, { onDelete: "cascade" }),

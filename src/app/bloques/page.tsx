@@ -33,6 +33,7 @@ export default async function Bloques() {
             temperatura: san.get(l.id)?.temperatura ?? null,
             humedadAire: san.get(l.id)?.humedadAire ?? null,
             humedadSuelo: san.get(l.id)?.humedadSuelo ?? null,
+            campos: san.get(l.id)?.campos,
           }))}
           centro={FINCA.centro}
           alto={440}

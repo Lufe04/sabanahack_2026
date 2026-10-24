@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Camera, Siren } from "lucide-react";
+import { EtiquetaCaptura } from "@/components/dashboard/etiqueta-captura";
+import { Camera } from "lucide-react";
 import { Encabezado, Seccion } from "@/components/dashboard/encabezado";
 import { Kpi } from "@/components/dashboard/kpi";
 import { Puntuacion4 } from "@/components/dashboard/puntuaciones";
@@ -11,7 +12,6 @@ import { fmtFecha, fmtNum } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-const MODO: Record<string, string> = { periodic: "Periódica", automatic: "Alerta automática", manual: "Foto manual", route_reference: "Referencia de punto" };
 const REVISION: Record<string, { etiqueta: string; color: string }> = {
   pendiente: { etiqueta: "Sin revisar", color: "var(--muted-foreground)" },
   confirmada: { etiqueta: "Confirmada", color: "var(--status-critical)" },
@@ -99,7 +99,7 @@ export default async function Capturas({ searchParams }: { searchParams: Promise
             <TableHeader>
               <TableRow>
                 <TableHead>Fecha</TableHead>
-                <TableHead>Bloque · cama · planta</TableHead>
+                <TableHead>Bloque · nave · cama · planta</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Puntuaciones</TableHead>
                 <TableHead>Foto</TableHead>
@@ -116,7 +116,7 @@ export default async function Capturas({ searchParams }: { searchParams: Promise
                   <TableCell>
                     {c.loteId ? (
                       <Link href={c.tag ? `/bloques/${c.loteId}?planta=${c.tag}` : `/bloques/${c.loteId}`} className="font-medium hover:underline">
-                        {c.loteId}{c.cama ? ` · cama ${c.cama} · planta ${c.posicion}` : ""}
+                        {c.loteId}{c.cama ? ` · nave ${c.nave} · cama ${c.cama} · planta ${c.posicion}` : ""}
                       </Link>
                     ) : (
                       <span className="text-muted-foreground">Sin bloque</span>
@@ -128,11 +128,7 @@ export default async function Capturas({ searchParams }: { searchParams: Promise
                     {c.simulado ? <div className="mt-1"><DistintivoSimulado compacto /></div> : null}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
-                    {c.alerta ? (
-                      <span className="inline-flex items-center gap-1 text-sm font-medium text-[var(--status-critical)]"><Siren className="size-3.5" />Alerta</span>
-                    ) : (
-                      <span className="text-sm">{MODO[c.modoCaptura ?? ""] ?? (c.antigua ? "Captura antigua" : c.modoCaptura ?? "—")}</span>
-                    )}
+                    <EtiquetaCaptura alerta={c.alerta} modo={c.modoCaptura} />
                   </TableCell>
                   <TableCell><Puntuacion4 p={c.puntuaciones} compacto /></TableCell>
                   <TableCell>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EtiquetaCaptura } from "@/components/dashboard/etiqueta-captura";
 import { notFound } from "next/navigation";
 import { CheckCircle2, Circle, CircleDot } from "lucide-react";
 import { Encabezado, Seccion } from "@/components/dashboard/encabezado";
@@ -133,7 +134,7 @@ export default async function DetalleRecorrido({ params }: { params: Promise<{ i
                 <TableRow key={l.id}>
                   <TableCell className="whitespace-nowrap"><Link href={`/capturas/${l.id}`} className="hover:underline">{fmtFecha(l.capturadoEn, "d MMM, HH:mm:ss")}</Link></TableCell>
                   <TableCell>{l.waypointId && ordenDe.has(l.waypointId) ? `#${ordenDe.get(l.waypointId)}` : "—"}</TableCell>
-                  <TableCell className="text-sm">{l.alerta ? <span className="font-medium text-[var(--status-critical)]">Alerta con foto</span> : l.tieneFoto ? "Con foto" : "Periódica"}</TableCell>
+                  <TableCell><EtiquetaCaptura alerta={l.alerta} modo={l.modoCaptura} /></TableCell>
                   <TableCell><Puntuacion4 p={l.puntuaciones} compacto /></TableCell>
                 </TableRow>
               ))}

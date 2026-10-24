@@ -2,6 +2,8 @@ import { sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { POST as recibir, GET } from "@/lib/cultivos/servicio";
 import { completarObservaciones } from "@/lib/cultivos/completar";
+import { normalizarBloque } from "@/lib/cultivos/asignacion-mvp";
+import { validate } from "@/lib/cultivos/adaptador/validation.mjs";
 
 /**
  * Receptor de la APK Cultivos a bordo (adaptador 0.2.2).
@@ -14,11 +16,50 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export { GET };
 
+/**
+ * Los bloques se llamaban L01 a L10. Si una app con el catálogo viejo envía "L01", se traduce
+ * a "B01" antes de validar. La traducción es determinista: un reintento del mismo envío produce
+ * el mismo contenido y la idempotencia por UUID se mantiene.
+ */
+function traducirCodigos(cuerpo: ArrayBuffer): ArrayBuffer {
+  try {
+    const e = JSON.parse(new TextDecoder().decode(cuerpo)) as Record<string, unknown>;
+    let cambio = false;
+    for (const obj of [e.route_context, e.route, e] as ({ lot_id?: unknown } | null | undefined)[]) {
+      if (obj && typeof obj.lot_id === "string" && /^L\d{2}$/i.test(obj.lot_id)) {
+        obj.lot_id = normalizarBloque(obj.lot_id);
+        cambio = true;
+      }
+    }
+    return cambio ? (new TextEncoder().encode(JSON.stringify(e)).buffer as ArrayBuffer) : cuerpo;
+  } catch {
+    return cuerpo; // el receptor responderá 400 por JSON inválido
+  }
+}
+
+/** Devuelve el UUID si ese contenido original (sin traducir) ya está guardado con la misma huella. */
+async function yaGuardadoSinTraducir(original: ArrayBuffer): Promise<string | null> {
+  try {
+    const { event, hash } = validate(JSON.parse(new TextDecoder().decode(original))) as { event: { id: string }; hash: string };
+    const r = await getDb().execute(sql`SELECT id FROM cultivos_registros WHERE id = ${event.id} AND data_hash = ${hash}`);
+    return r.rows.length ? event.id : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: Request) {
-  const cuerpo = await request.arrayBuffer();
-  const respuesta = await recibir(
-    new Request(request.url, { method: "POST", headers: request.headers, body: cuerpo.byteLength ? cuerpo : undefined }),
-  );
+  const original = await request.arrayBuffer();
+  const cuerpo = traducirCodigos(original);
+  const enviar = (body: ArrayBuffer) =>
+    recibir(new Request(request.url, { method: "POST", headers: request.headers, body: body.byteLength ? body : undefined }));
+  let respuesta = await enviar(cuerpo);
+  // Un reintento de algo guardado antes de la traducción (con "L01") coincide con el
+  // contenido original: se confirma como ya guardado en vez de responder 409.
+  if (respuesta.status === 409 && cuerpo !== original) {
+    const previo = await yaGuardadoSinTraducir(original);
+    if (previo) respuesta = Response.json({ id: previo, status: "stored", new: false }, { status: 200, headers: { "Cache-Control": "no-store" } });
+  }
   await registrarIntento(request, cuerpo, respuesta.clone()).catch((e) => console.error("No se pudo registrar el intento", e));
   // La app aún no envía bloque ni cama: se completan con la asignación fija del MVP.
   if (respuesta.status === 200 || respuesta.status === 201) {

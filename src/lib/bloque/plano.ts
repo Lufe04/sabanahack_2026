@@ -5,8 +5,9 @@
  * La finca es simulada: la sanidad por planta se deriva de los brotes abiertos del
  * bloque, y el microclima se interpola desde la posición de sus sensores.
  *
- * Marco de plantación típico de arándano en la sabana: camas de 1,2 m con pasillos
- * de 1,8 m (3 m entre centros) y plantas cada 0,75 m sobre la cama.
+ * Jerarquía: el BLOQUE es el invernadero; cada NAVE (un túnel de 9 m) encierra 3 CAMAS;
+ * cada cama tiene sus PLANTAS. Marco típico de arándano en la sabana: camas de 1,2 m con
+ * pasillos de 1,8 m (3 m entre centros) y plantas cada 0,75 m sobre la cama.
  */
 import { Rng } from "@/lib/simulador/rng";
 import type { Enfermedad } from "@/db/schema";
@@ -17,13 +18,17 @@ export const MARCO = {
   entrePlantasM: 0.75,
   cabeceraM: 4, // calle de servicio al norte y al sur
   bordeM: 2.5, // margen este y oeste
+  camasPorNave: 3, // nave de 9 m
 };
 
 const M_POR_GRADO_LAT = 111_320;
 
 export const PLAGAS_PLANO: Enfermedad[] = ["trips", "botrytis", "alternaria"];
 
-export type Cama = { numero: number; xM: number; plantas: number };
+export type Cama = { numero: number; nave: number; xM: number; plantas: number };
+
+/** Nave del invernadero: franja que encierra varias camas contiguas. */
+export type Nave = { numero: number; x0M: number; x1M: number; camaDesde: number; camaHasta: number };
 
 export type SensorPlano = { id: string; tipo: string; xM: number; yM: number; valor: number | null; unidad: string };
 
@@ -46,13 +51,14 @@ export type Plano = {
   bloqueId: string;
   anchoM: number;
   altoM: number;
+  naves: Nave[];
   camas: Cama[];
   y0M: number;
   /** Afectación por planta, 0 (sana) a 100, en orden cama por cama, de sur a norte. */
   afectacion: number[];
   /** Plaga dominante por planta: 0 ninguna, 1 trips, 2 botrytis, 3 alternaria. */
   plaga: number[];
-  campos: { temperatura: Campo; humedadAire: Campo; humedadSuelo: Campo };
+  campos: { sanidad: Campo; temperatura: Campo; humedadAire: Campo; humedadSuelo: Campo };
   sensores: SensorPlano[];
   robot: PuntoRobot[];
   resumen: PlanoResumen;
@@ -128,13 +134,31 @@ export function marcoDe(poligono: [number, number][]) {
   return { anchoM, altoM, nCamas, plantasPorCama, x0M, y0M };
 }
 
+/** Número de nave de una cama (las camas se cuentan de oeste a este). */
+export const naveDeCama = (cama: number) => Math.ceil(cama / MARCO.camasPorNave);
+
+/** Naves de un bloque, con sus límites en metros desde el borde oeste. */
+export function navesDe(poligono: [number, number][]): Nave[] {
+  const { nCamas, x0M, anchoM } = marcoDe(poligono);
+  const naves: Nave[] = [];
+  for (let desde = 1; desde <= nCamas; desde += MARCO.camasPorNave) {
+    const hasta = Math.min(nCamas, desde + MARCO.camasPorNave - 1);
+    const numero = naves.length + 1;
+    const izq = x0M + (desde - 1) * MARCO.entreCamasM - MARCO.entreCamasM / 2;
+    const der = x0M + (hasta - 1) * MARCO.entreCamasM + MARCO.entreCamasM / 2;
+    naves.push({ numero, x0M: Math.max(0, numero === 1 ? 0 : izq), x1M: Math.min(anchoM, hasta === nCamas ? anchoM : der), camaDesde: desde, camaHasta: hasta });
+  }
+  return naves;
+}
+
 export function construirPlano(e: EntradaPlano): Plano {
   const { anchoM, altoM, aLocal } = dimensiones(e.bloque.poligono);
   const semilla = hash(e.bloque.id);
 
   // --- Camas y plantas ---
   const { nCamas, plantasPorCama, x0M: x0, y0M } = marcoDe(e.bloque.poligono);
-  const camas: Cama[] = Array.from({ length: nCamas }, (_, i) => ({ numero: i + 1, xM: x0 + i * MARCO.entreCamasM, plantas: plantasPorCama }));
+  const camas: Cama[] = Array.from({ length: nCamas }, (_, i) => ({ numero: i + 1, nave: naveDeCama(i + 1), xM: x0 + i * MARCO.entreCamasM, plantas: plantasPorCama }));
+  const naves = navesDe(e.bloque.poligono);
 
   // --- Focos de cada brote ---
   const malDrenaje = e.bloque.drenaje === "malo" ? 1 : e.bloque.drenaje === "regular" ? 0.5 : 0;
@@ -245,6 +269,48 @@ export function construirPlano(e: EntradaPlano): Plano {
     0,
   );
 
+  // Sanidad como campo continuo: afectación promedio de las plantas de cada celda,
+  // suavizada para que el foco se lea como mancha y no como rayas de camas.
+  const sanidad = (() => {
+    const sc = 40;
+    const sf = Math.max(10, Math.round((sc * altoM) / anchoM));
+    const suma = new Float64Array(sc * sf);
+    const cuenta = new Float64Array(sc * sf);
+    let k = 0;
+    for (const c of camas) {
+      const fx = Math.min(sc - 1, Math.floor((c.xM / anchoM) * sc));
+      for (let j = 0; j < c.plantas; j++, k++) {
+        const fy = Math.min(sf - 1, Math.floor(((y0M + j * MARCO.entrePlantasM) / altoM) * sf));
+        suma[fy * sc + fx] += afectacion[k];
+        cuenta[fy * sc + fx]++;
+      }
+    }
+    let v: number[] = Array.from(suma, (x, i) => (cuenta[i] ? x / cuenta[i] : 0));
+    for (let pasada = 0; pasada < 2; pasada++) {
+      const w: number[] = new Array(v.length).fill(0);
+      for (let y = 0; y < sf; y++) {
+        for (let x = 0; x < sc; x++) {
+          let acc = 0;
+          let n = 0;
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              const xx = x + dx;
+              const yy = y + dy;
+              if (xx < 0 || yy < 0 || xx >= sc || yy >= sf) continue;
+              const peso = dx === 0 && dy === 0 ? 2 : 1;
+              acc += v[yy * sc + xx] * peso;
+              n += peso;
+            }
+          }
+          w[y * sc + x] = acc / n;
+        }
+      }
+      v = w;
+    }
+    const valores = v.map((x) => Math.round(x * 10) / 10);
+    return { cols: sc, filas: sf, valores, min: 0, max: Math.max(...valores), unidad: "%", fuente: "Afectación de las plantas, suavizada" } satisfies Campo;
+  })();
+
   const robot: PuntoRobot[] = (e.robot ?? []).map((p) => ({ ...aLocal(p.lat, p.lng), etiqueta: p.etiqueta, estado: p.estado, scores: p.scores, observationId: p.observationId, fecha: p.fecha }));
   for (const c of e.capturas ?? []) {
     const cama = camas[c.cama - 1];
@@ -267,18 +333,19 @@ export function construirPlano(e: EntradaPlano): Plano {
     bloqueId: e.bloque.id,
     anchoM,
     altoM,
+    naves,
     camas,
     y0M,
     afectacion,
     plaga,
-    campos: { temperatura, humedadAire, humedadSuelo },
+    campos: { sanidad, temperatura, humedadAire, humedadSuelo },
     sensores,
     robot,
     resumen: { plantas, afectadas, pctAfectadas: plantas ? Math.round((1000 * afectadas) / plantas) / 10 : 0, severas, porPlaga },
   };
 }
 
-/** Tag legible de una planta: bloque, cama y posición sobre la cama (de sur a norte). */
+/** Tag legible de una planta: bloque, nave, cama y posición sobre la cama (de sur a norte). */
 export function tagPlanta(bloqueId: string, cama: number, posicion: number) {
-  return `${bloqueId}-C${String(cama).padStart(2, "0")}-P${String(posicion).padStart(3, "0")}`;
+  return `${bloqueId}-N${String(naveDeCama(cama)).padStart(2, "0")}-C${String(cama).padStart(2, "0")}-P${String(posicion).padStart(3, "0")}`;
 }

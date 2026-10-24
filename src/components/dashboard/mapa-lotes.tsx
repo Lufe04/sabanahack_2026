@@ -6,7 +6,7 @@ import { CapaRecorridos, type FeatureCollectionRecorridos, type PuntoSeleccionad
 import { Puntuacion4 } from "./puntuaciones";
 import { DistintivoSimulado } from "./fase-recorrido";
 import type { Puntuaciones } from "@/db/schema";
-import { MapContainer, TileLayer, Polygon, Tooltip, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Polygon, Polyline, ImageOverlay, Tooltip, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { useRouter } from "next/navigation";
 import { COLOR_RIESGO, nivelRiesgo, ETIQUETA_RIESGO } from "@/lib/viz/palette";
@@ -29,6 +29,10 @@ type Props = {
   compacto?: boolean;
   /** Color y etiqueta por bloque para colorear el mapa según otra variable (mapa de calor). */
   colores?: Record<string, { color: string; texto: string }>;
+  /** Imagen de mapa de calor por bloque (data URL), dibujada dentro de su contorno. */
+  imagenes?: Record<string, string>;
+  /** Líneas de las naves de cada invernadero. */
+  naves?: Record<string, [number, number][][]>;
   /** Rutas de la APK dibujadas con la capa del adaptador sobre este mismo mapa. */
   recorridos?: { inicial: FeatureCollectionRecorridos; url: string; encuadrar?: boolean };
 };
@@ -42,7 +46,7 @@ function Encuadre({ bounds }: { bounds: [[number, number], [number, number]] }) 
   return null;
 }
 
-export function MapaLotes({ lotes, centro, zoom = 17, alto = 360, interactivo = true, compacto = false, recorridos, colores }: Props) {
+export function MapaLotes({ lotes, centro, zoom = 17, alto = 360, interactivo = true, compacto = false, recorridos, colores, imagenes, naves }: Props) {
   const router = useRouter();
   const [punto, setPunto] = useState<PuntoSeleccionado | null>(null);
   const haySimulados = recorridos?.inicial.features.some((f) => f.properties.simulated === true) ?? false;
@@ -69,6 +73,27 @@ export function MapaLotes({ lotes, centro, zoom = 17, alto = 360, interactivo = 
           maxZoom={20}
           maxNativeZoom={18}
         />
+        {imagenes
+          ? lotes.map((l) => {
+              const url = imagenes[l.id];
+              if (!url) return null;
+              const lats = l.poligono.map((p) => p[0]);
+              const lngs = l.poligono.map((p) => p[1]);
+              return (
+                <ImageOverlay
+                  key={`calor-${l.id}-${url.length}`}
+                  url={url}
+                  bounds={[[Math.min(...lats), Math.min(...lngs)], [Math.max(...lats), Math.max(...lngs)]]}
+                  opacity={0.9}
+                />
+              );
+            })
+          : null}
+        {naves
+          ? lotes.flatMap((l) => (naves[l.id] ?? []).map((linea, i) => (
+              <Polyline key={`nave-${l.id}-${i}`} positions={linea} pathOptions={{ color: "#ffffff", weight: 0.8, opacity: 0.7, interactive: false }} />
+            )))
+          : null}
         {lotes.map((l) => {
           const nivel = nivelRiesgo(l.indiceRiesgo);
           const color = colores?.[l.id]?.color ?? COLOR_RIESGO[nivel];
@@ -77,7 +102,7 @@ export function MapaLotes({ lotes, centro, zoom = 17, alto = 360, interactivo = 
             <Polygon
               key={l.id}
               positions={l.poligono}
-              pathOptions={{ color, weight: 2.5, fillColor: color, fillOpacity: colores ? 0.55 : 0.35 }}
+              pathOptions={imagenes?.[l.id] ? { color: "#ffffff", weight: 2, fillOpacity: 0 } : { color, weight: 2.5, fillColor: color, fillOpacity: colores ? 0.55 : 0.35 }}
               eventHandlers={interactivo ? { click: () => router.push(`/bloques/${l.id}`) } : undefined}
             >
               <Tooltip direction="center" permanent className="!border-0 !bg-transparent !p-0 !shadow-none">

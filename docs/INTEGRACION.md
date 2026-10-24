@@ -23,9 +23,9 @@ Los endpoints de `/api/ingesta` y `/api/lotes` están probados en producción. `
 |---|---|---|---|
 | `POST` | `/api/ingesta/lecturas` | Lote de lecturas de sensores (hasta 5000) | Sí |
 | `POST` | `/api/events` | Observaciones y estados de recorrido de la APK Cultivos a bordo 0.2.2 | Sí |
-| `GET` | `/api/events?after=0&lote=L01` | Consulta entre servidores, hasta 100 registros con cursor | Clave de lectura |
+| `GET` | `/api/events?after=0&lote=B01` | Consulta entre servidores, hasta 100 registros con cursor | Clave de lectura |
 | `GET` | `/api/events/{id}/photo` | JPEG de una captura, entre servidores | Clave de lectura |
-| `GET` | `/api/recorridos?lote=L01` | GeoJSON de rutas para mapas, entre servidores | Clave de lectura |
+| `GET` | `/api/recorridos?lote=B01` | GeoJSON de rutas para mapas, entre servidores | Clave de lectura |
 | `GET` | `/api/lotes` | Lotes con su estado actual (para validar IDs) | No |
 
 ## 3. Autenticación
@@ -48,9 +48,9 @@ URL base que se escribe en **Receptor** de la APK: `https://arandanos-dashboard.
 | Ruta | Para qué | Clave |
 |---|---|---|
 | `POST /api/events` | Observaciones (`observation`) y estados de recorrido (`route_snapshot`) | `INGEST_API_KEY` |
-| `GET /api/events?after=0&lote=L01` | Hasta 100 registros con cursor `siguiente` | `DASHBOARD_READ_API_KEY` |
+| `GET /api/events?after=0&lote=B01` | Hasta 100 registros con cursor `siguiente` | `DASHBOARD_READ_API_KEY` |
 | `GET /api/events/{id}/photo` | JPEG de una captura; 404 si no tiene | `DASHBOARD_READ_API_KEY` |
-| `GET /api/recorridos?lote=L01` | `FeatureCollection` con `boundary`, `route`, `waypoint` y `position` | `DASHBOARD_READ_API_KEY` |
+| `GET /api/recorridos?lote=B01` | `FeatureCollection` con `boundary`, `route`, `waypoint` y `position` | `DASHBOARD_READ_API_KEY` |
 | `GET /recorridos/geojson` | Mismo GeoJSON para los mapas del propio dashboard | Ninguna (ver nota) |
 
 Respuestas del receptor: `201` al guardar, `200` con `new:false` al reintentar el mismo contenido, `409` si el UUID se reutiliza con otro contenido, `422` si el lote no está en el catálogo, `400` si no cumple el contrato, `413` si el JSON supera 3,5 MB, `415` si no es JSON y `401` sin token.
@@ -63,12 +63,16 @@ Cómo se integró:
 - **Mapa.** `leaflet-routes.mjs` se monta sobre la instancia Leaflet existente, sin reemplazar el fondo satelital, en Hoy, Recorridos, el detalle de cada lote y el detalle de cada recorrido.
 - **Nota de seguridad.** El dashboard no tiene login en el MVP. Por eso `/recorridos/geojson` y las fotos de `/capturas/{id}/foto` tienen la misma visibilidad que el resto del dashboard. Al agregar sesión, hay que verificarla en esas dos rutas.
 
-### Bloque y cama asignados en el MVP
+### Códigos de bloque
+
+Los bloques se llaman **B01 a B10**. Cada bloque es un invernadero dividido en naves de 9 m, con 3 camas por nave. Antes se llamaban L01 a L10: si una app con el catálogo viejo envía `lot_id: "L01"`, el receptor lo traduce a `B01` antes de validar. Si un reintento coincide con un envío guardado antes de la traducción, se confirma como ya guardado (200), no como conflicto (409). Conviene volver a tocar **Importar lotes del receptor** en la app para que tome los códigos nuevos.
+
+### Bloque, nave y cama asignados en el MVP
 
 La app todavía envía las capturas en el formato antiguo: sin `route_context`, así que llegan sin bloque, cama ni planta. Lo único que identifica la planta es el texto de `mission` (`arandanos-prueba-01 | planta <uuid>`). Mientras la app no los envíe, el receptor los completa con una regla fija en `src/lib/cultivos/asignacion-mvp.ts`:
 
-- **Bloque:** el que traiga la app; si no trae ninguno, `L01` (constante `BLOQUE_POR_DEFECTO`).
-- **Cama y planta:** se derivan del identificador de planta de `mission`, o del UUID del registro si no hay. La misma planta cae siempre en el mismo tag, por ejemplo `L01-C28-P101`.
+- **Bloque:** el que traiga la app; si no trae ninguno, `B01` (constante `BLOQUE_POR_DEFECTO`).
+- **Nave, cama y planta:** se derivan del identificador de planta de `mission`, o del UUID del registro si no hay. La misma planta cae siempre en el mismo tag, con el formato `BLOQUE-Nnave-Ccama-Pplanta`, por ejemplo `B01-N07-C20-P057`.
 - Se guarda en `datos.asignacion_mvp`, con `origen` = `app` o `mvp` para cada parte. No cambia `data_hash`, así que los reintentos siguen respondiendo 200 sin duplicar.
 - Si la app empieza a enviar `route_context.lot_id` y la cama (`bed` y `plant_position`), se usan esos valores y la regla deja de actuar.
 - Para completar registros que ya estaban en la base: `npx dotenv -e .env.production.local -- tsx scripts/completar-capturas.ts`.
@@ -93,13 +97,17 @@ Para que el equipo de la APK los lleve a su versión:
 ```json
 {
   "lecturas": [
-    { "sensorId": "L04-HS-1", "ts": "2026-10-24T13:30:00Z", "valor": 57.3 },
-    { "sensorId": "L04-HA-1", "ts": "2026-10-24T13:30:00Z", "valor": 91.2 }
+    { "sensorId": "B04-HS-1", "ts": "2026-10-24T13:30:00Z", "valor": 57.3 },
+    { "sensorId": "B04-HA-1", "ts": "2026-10-24T13:30:00Z", "valor": 91.2 }
   ]
 }
 ```
 
-IDs de sensor: `<lote>-<tipo>-<n>`. Tipos: `HS` humedad del suelo (%), `HA` humedad del aire (%), `TE` temperatura (°C), `RA` radiación solar (W/m²). Ejemplo del lote L04: `L04-HS-1`, `L04-HS-2`, `L04-HA-1`, `L04-TE-1`.
+IDs de sensor: `<lote>-<tipo>-<n>`. Tipos: `HS` humedad del suelo (%), `HA` humedad del aire (%), `TE` temperatura (°C), `RA` radiación solar (W/m²). Ejemplo del lote B04: `B04-HS-1`, `B04-HS-2`, `B04-HA-1`, `B04-TE-1`.
+
+### Etiqueta de cada lectura
+
+El dashboard la calcula solo con `alert` y `capture_mode`, sin depender de la foto ni del lote: `alert: true` es **Alerta**; `alert: false` es **Normal** (o **Foto manual** / **Referencia de punto** para `manual` y `route_reference`).
 
 ### Respuestas
 
@@ -112,7 +120,7 @@ IDs de sensor: `<lote>-<tipo>-<n>`. Tipos: `HS` humedad del suelo (%), `HA` hume
 `422` sensor inexistente
 
 ```json
-{ "error": "Sensores desconocidos", "desconocidos": ["L04-XX-9"] }
+{ "error": "Sensores desconocidos", "desconocidos": ["B04-XX-9"] }
 ```
 
 `400` cuando el cuerpo no cumple las reglas y `401` sin token, con el formato `{ "error": "…" }`.
@@ -123,7 +131,7 @@ IDs de sensor: `<lote>-<tipo>-<n>`. Tipos: `HS` humedad del suelo (%), `HA` hume
 curl -X POST https://arandanos-dashboard.vercel.app/api/ingesta/lecturas \
   -H "Authorization: Bearer $INGEST_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"lecturas":[{"sensorId":"L04-HS-1","ts":"2026-10-24T13:30:00Z","valor":57.3}]}'
+  -d '{"lecturas":[{"sensorId":"B04-HS-1","ts":"2026-10-24T13:30:00Z","valor":57.3}]}'
 ```
 
 ## 7. Comportamiento a tener en cuenta

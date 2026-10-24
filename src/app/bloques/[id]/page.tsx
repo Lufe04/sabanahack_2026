@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EtiquetaCaptura } from "@/components/dashboard/etiqueta-captura";
 import { notFound } from "next/navigation";
 import { Encabezado, Seccion } from "@/components/dashboard/encabezado";
 import { Kpi } from "@/components/dashboard/kpi";
@@ -47,7 +48,7 @@ export default async function DetalleBloque({ params, searchParams }: { params: 
     <>
       <Encabezado
         titulo={<span className="flex flex-wrap items-center gap-3">Bloque {lote.id} · {lote.nombre} <RiesgoBadge indice={lote.indiceRiesgo} /></span>}
-        descripcion={`${lote.variedad} · ${fmtNum(lote.hectareas, 2)} ha · drenaje ${lote.drenaje} · ${plano.camas.length} camas · ${r.plantas.toLocaleString("es-CO")} plantas`}
+        descripcion={`${lote.variedad} · ${fmtNum(lote.hectareas, 2)} ha · drenaje ${lote.drenaje} · invernadero de ${plano.naves.length} naves y ${plano.camas.length} camas · ${r.plantas.toLocaleString("es-CO")} plantas`}
         acciones={<Link href="/bloques" className="text-sm text-muted-foreground underline">Todos los bloques</Link>}
       />
 
@@ -67,7 +68,7 @@ export default async function DetalleBloque({ params, searchParams }: { params: 
       <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <Seccion
           titulo="Plano del bloque"
-          descripcion="Cada punto es una planta con su tag. Acércate para ver los números de cama y de planta; cambia de capa para ver dónde está la enfermedad, el calor o la humedad."
+          descripcion="El bloque es el invernadero; las líneas blancas separan sus naves, y cada nave tiene 3 camas. Acércate para ver los números de cama y los tags de planta; cambia de capa para ver dónde está la enfermedad, el calor o la humedad."
         >
           <PlanoBloque plano={plano} enfocar={planta ?? null} />
         </Seccion>
@@ -147,7 +148,7 @@ export default async function DetalleBloque({ params, searchParams }: { params: 
                         <Link href={`/capturas/${c.id}`} className="hover:underline">{fmtFecha(c.capturadoEn, "d MMM, HH:mm:ss")}</Link>
                         {c.simulado ? <div className="mt-1"><DistintivoSimulado compacto /></div> : null}
                       </TableCell>
-                      <TableCell className="text-sm">{c.alerta ? <span className="font-medium text-[var(--status-critical)]">Alerta con foto</span> : c.tieneFoto ? "Con foto" : "Periódica"}</TableCell>
+                      <TableCell><EtiquetaCaptura alerta={c.alerta} modo={c.modoCaptura} /></TableCell>
                       <TableCell><Puntuacion4 p={c.puntuaciones} compacto /></TableCell>
                     </TableRow>
                   ))}

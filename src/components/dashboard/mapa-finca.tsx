@@ -1,8 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { MapaLotesLazy } from "./mapa-lotes-lazy";
 import type { FeatureCollectionRecorridos } from "./capa-recorridos";
+import { ESCALAS, pintarCampo, type CampoCalor, type VariableCalor } from "@/lib/viz/calor";
+import { LeyendaCalor } from "@/components/viz/leyenda-calor";
+import { navesDe } from "@/lib/bloque/plano";
 import { cn } from "@/lib/utils";
 
 export type DatoBloque = {
@@ -15,9 +18,10 @@ export type DatoBloque = {
   temperatura: number | null;
   humedadAire: number | null;
   humedadSuelo: number | null;
+  campos?: Record<VariableCalor, CampoCalor>;
 };
 
-type Capa = "sanidad" | "riesgo" | "temperatura" | "humedadAire" | "humedadSuelo";
+type Capa = VariableCalor | "riesgo";
 const CAPAS: { valor: Capa; etiqueta: string }[] = [
   { valor: "sanidad", etiqueta: "Plantas afectadas" },
   { valor: "riesgo", etiqueta: "Riesgo de brote" },
@@ -26,25 +30,31 @@ const CAPAS: { valor: Capa; etiqueta: string }[] = [
   { valor: "humedadSuelo", etiqueta: "Humedad del suelo" },
 ];
 
-/** Estado (bueno → crítico) para afectación y riesgo; rampas de un tono para el clima. */
-const ESTADOS = [
-  { hasta: 1, color: "#0ca30c", etiqueta: "Sin afectación" },
-  { hasta: 5, color: "#fab219", etiqueta: "Leve" },
-  { hasta: 10, color: "#ec835a", etiqueta: "Moderada" },
-  { hasta: Infinity, color: "#d03b3b", etiqueta: "Alta" },
-];
 const RIESGO = [
   { hasta: 20, color: "#0ca30c", etiqueta: "Bajo" },
   { hasta: 40, color: "#fab219", etiqueta: "Moderado" },
   { hasta: 60, color: "#ec835a", etiqueta: "Alto" },
   { hasta: Infinity, color: "#d03b3b", etiqueta: "Crítico" },
 ];
-const RAMPAS: Record<"temperatura" | "humedadAire" | "humedadSuelo", string[]> = {
-  temperatura: ["#ffedd5", "#fdbe85", "#ed7834", "#b5430b"],
-  humedadAire: ["#cde2fb", "#6da7ec", "#256abf", "#0d366b"],
-  humedadSuelo: ["#d6f0e5", "#78c8aa", "#1b8c67", "#09523c"],
-};
-const UNIDAD = { temperatura: "°C", humedadAire: "%", humedadSuelo: "%" };
+
+const M_POR_GRADO = 111_320;
+const sinSuscripcion = () => () => {};
+
+/** Líneas entre naves de un invernadero, en coordenadas [lat, lng]. */
+function lineasNaves(poligono: [number, number][]): [number, number][][] {
+  const lats = poligono.map((p) => p[0]);
+  const lngs = poligono.map((p) => p[1]);
+  const latMin = Math.min(...lats);
+  const latMax = Math.max(...lats);
+  const lngMin = Math.min(...lngs);
+  const mLng = M_POR_GRADO * Math.cos((((latMin + latMax) / 2) * Math.PI) / 180);
+  return navesDe(poligono)
+    .slice(1)
+    .map((n) => {
+      const lng = lngMin + n.x0M / mLng;
+      return [[latMin, lng], [latMax, lng]];
+    });
+}
 
 export function MapaFinca({
   bloques,
@@ -60,30 +70,39 @@ export function MapaFinca({
   capaInicial?: Capa;
 }) {
   const [capa, setCapa] = useState<Capa>(capaInicial);
+  const enNavegador = useSyncExternalStore(sinSuscripcion, () => true, () => false);
 
-  const { colores, leyenda } = useMemo(() => {
-    const colores: Record<string, { color: string; texto: string }> = {};
-    if (capa === "sanidad" || capa === "riesgo") {
-      const escala = capa === "sanidad" ? ESTADOS : RIESGO;
-      for (const b of bloques) {
-        const v = capa === "sanidad" ? b.pctAfectadas : b.indiceRiesgo;
-        const paso = escala.find((e) => v < e.hasta)!;
-        colores[b.id] = { color: paso.color, texto: capa === "sanidad" ? `${v.toLocaleString("es-CO")} %` : `${v} %` };
-      }
-      return { colores, leyenda: { tipo: "estado" as const, pasos: escala } };
-    }
-    const vals = bloques.map((b) => b[capa]).filter((v): v is number => v !== null);
-    const min = Math.min(...vals);
-    const max = Math.max(...vals);
-    const rampa = RAMPAS[capa];
+  const naves = useMemo(() => Object.fromEntries(bloques.map((b) => [b.id, lineasNaves(b.poligono)])), [bloques]);
+
+  // Texto de cada bloque: el valor promedio de la variable elegida
+  const colores = useMemo(() => {
+    const r: Record<string, { color: string; texto: string }> = {};
     for (const b of bloques) {
-      const v = b[capa];
-      if (v === null) continue;
-      const t = max > min ? (v - min) / (max - min) : 0.5;
-      colores[b.id] = { color: rampa[Math.min(rampa.length - 1, Math.floor(t * rampa.length))], texto: `${v.toFixed(capa === "temperatura" ? 1 : 0)}${UNIDAD[capa]}` };
+      if (capa === "riesgo") {
+        r[b.id] = { color: RIESGO.find((e) => b.indiceRiesgo < e.hasta)!.color, texto: `${b.indiceRiesgo} %` };
+      } else {
+        const v = capa === "sanidad" ? b.pctAfectadas : b[capa];
+        const e = ESCALAS[capa];
+        r[b.id] = { color: "#ffffff", texto: v === null ? "—" : `${v.toLocaleString("es-CO", { maximumFractionDigits: capa === "temperatura" || capa === "sanidad" ? 1 : 0 })}${e.unidad === "°C" ? "°" : " %"}` };
+      }
     }
-    return { colores, leyenda: { tipo: "rampa" as const, rampa, min, max, unidad: UNIDAD[capa], decimales: capa === "temperatura" ? 1 : 0 } };
+    return r;
   }, [bloques, capa]);
+
+  // Calor continuo dentro de cada invernadero, con la misma escala para toda la finca
+  const imagenes = useMemo(() => {
+    if (!enNavegador || capa === "riesgo") return undefined;
+    const escala = ESCALAS[capa];
+    const r: Record<string, string> = {};
+    for (const b of bloques) {
+      const campo = b.campos?.[capa];
+      if (!campo) continue;
+      r[b.id] = pintarCampo(campo, escala, campo.cols * 6, campo.filas * 6, { alfa: capa === "sanidad" ? 1 : 0.95 }).toDataURL();
+    }
+    return r;
+  }, [bloques, capa, enNavegador]);
+
+  const escala = capa === "riesgo" ? null : ESCALAS[capa];
 
   return (
     <div className="space-y-2">
@@ -101,21 +120,18 @@ export function MapaFinca({
           </button>
         ))}
       </div>
-      <MapaLotesLazy lotes={bloques} centro={centro} alto={alto} compacto colores={colores} recorridos={recorridos} />
-      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-        {leyenda.tipo === "estado" ? (
-          leyenda.pasos.map((p) => (
-            <span key={p.etiqueta} className="inline-flex items-center gap-1.5"><span className="inline-block size-2.5 rounded-sm" style={{ background: p.color }} />{p.etiqueta}</span>
-          ))
+      <MapaLotesLazy lotes={bloques} centro={centro} alto={alto} compacto colores={colores} imagenes={imagenes} naves={naves} recorridos={recorridos} />
+      <div className="flex flex-wrap items-end gap-x-6 gap-y-2 text-xs text-muted-foreground">
+        {escala ? (
+          <LeyendaCalor escala={escala} fuente="Misma escala para toda la finca" />
         ) : (
-          <span className="inline-flex items-center gap-2">
-            <span className="tabular-nums">{leyenda.min.toFixed(leyenda.decimales)}{leyenda.unidad}</span>
-            <span className="inline-block h-2.5 w-32 rounded-full" style={{ background: `linear-gradient(90deg, ${leyenda.rampa.join(",")})` }} />
-            <span className="tabular-nums">{leyenda.max.toFixed(leyenda.decimales)}{leyenda.unidad}</span>
-            <span>· lectura actual de los sensores de cada bloque</span>
-          </span>
+          <div className="flex flex-wrap items-center gap-3">
+            {RIESGO.map((p) => (
+              <span key={p.etiqueta} className="inline-flex items-center gap-1.5"><span className="inline-block size-2.5 rounded-sm" style={{ background: p.color }} />{p.etiqueta}</span>
+            ))}
+          </div>
         )}
-        <span>· clic en un bloque para ver su plano</span>
+        <span>Cada bloque es un invernadero; las líneas blancas separan sus naves · clic en un bloque para ver su plano</span>
       </div>
     </div>
   );

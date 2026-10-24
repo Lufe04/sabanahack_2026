@@ -2,7 +2,7 @@ import type { Drenaje, NuevoLote, NuevoSensor, TipoSensor } from "@/db/schema";
 
 /**
  * Finca ficticia sobre terreno agrícola real en Tocancipá, Cundinamarca
- * (sabana de Bogotá, ~2.600 msnm). 10 lotes en una grilla de 5 x 2.
+ * (sabana de Bogotá, ~2.600 msnm). 10 bloques (B01 a B10) en una grilla de 5 x 2.
  */
 export const FINCA = {
   nombre: "Finca Los Arrayanes",
@@ -31,16 +31,16 @@ type DefLote = {
 };
 
 const DEFINICIONES: DefLote[] = [
-  { id: "L01", nombre: "Arrayán", variedad: "Biloxi", fechaSiembra: "2022-03-15", drenaje: "bueno" },
-  { id: "L02", nombre: "Mortiño", variedad: "Biloxi", fechaSiembra: "2022-03-15", drenaje: "bueno" },
-  { id: "L03", nombre: "Sauce", variedad: "Legacy", fechaSiembra: "2021-09-01", drenaje: "regular" },
-  { id: "L04", nombre: "Roble", variedad: "Legacy", fechaSiembra: "2021-09-01", drenaje: "malo" },
-  { id: "L05", nombre: "Aliso", variedad: "Sharpblue", fechaSiembra: "2023-01-20", drenaje: "bueno" },
-  { id: "L06", nombre: "Cedro", variedad: "Emerald", fechaSiembra: "2023-01-20", drenaje: "regular" },
-  { id: "L07", nombre: "Laurel", variedad: "Biloxi", fechaSiembra: "2020-06-10", drenaje: "bueno" },
-  { id: "L08", nombre: "Encenillo", variedad: "Ventura", fechaSiembra: "2022-10-05", drenaje: "malo" },
-  { id: "L09", nombre: "Chicalá", variedad: "Legacy", fechaSiembra: "2023-06-01", drenaje: "bueno" },
-  { id: "L10", nombre: "Guayacán", variedad: "Emerald", fechaSiembra: "2021-02-14", drenaje: "regular" },
+  { id: "B01", nombre: "Arrayán", variedad: "Biloxi", fechaSiembra: "2022-03-15", drenaje: "bueno" },
+  { id: "B02", nombre: "Mortiño", variedad: "Biloxi", fechaSiembra: "2022-03-15", drenaje: "bueno" },
+  { id: "B03", nombre: "Sauce", variedad: "Legacy", fechaSiembra: "2021-09-01", drenaje: "regular" },
+  { id: "B04", nombre: "Roble", variedad: "Legacy", fechaSiembra: "2021-09-01", drenaje: "malo" },
+  { id: "B05", nombre: "Aliso", variedad: "Sharpblue", fechaSiembra: "2023-01-20", drenaje: "bueno" },
+  { id: "B06", nombre: "Cedro", variedad: "Emerald", fechaSiembra: "2023-01-20", drenaje: "regular" },
+  { id: "B07", nombre: "Laurel", variedad: "Biloxi", fechaSiembra: "2020-06-10", drenaje: "bueno" },
+  { id: "B08", nombre: "Encenillo", variedad: "Ventura", fechaSiembra: "2022-10-05", drenaje: "malo" },
+  { id: "B09", nombre: "Chicalá", variedad: "Legacy", fechaSiembra: "2023-06-01", drenaje: "bueno" },
+  { id: "B10", nombre: "Guayacán", variedad: "Emerald", fechaSiembra: "2021-02-14", drenaje: "regular" },
 ];
 
 function construirLotes(): NuevoLote[] {
@@ -94,7 +94,7 @@ const CODIGO: Record<TipoSensor, string> = {
 };
 
 /** Lotes con estación de radiación solar (una por sector de la finca). */
-const LOTES_CON_RADIACION = new Set(["L01", "L05", "L09"]);
+const LOTES_CON_RADIACION = new Set(["B01", "B05", "B09"]);
 
 export function construirSensores(fechaInstalacion: string): NuevoSensor[] {
   const sensores: NuevoSensor[] = [];

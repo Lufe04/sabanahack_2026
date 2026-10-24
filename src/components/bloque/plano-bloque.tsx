@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Minus, Plus, Maximize2, Bot, Radio } from "lucide-react";
-import type { Plano, Campo } from "@/lib/bloque/plano";
+import type { Plano } from "@/lib/bloque/plano";
+import { ESCALAS, pintarCampo, type CampoCalor } from "@/lib/viz/calor";
+import { LeyendaCalor } from "@/components/viz/leyenda-calor";
 import { cn } from "@/lib/utils";
 
 type Capa = "sanidad" | "temperatura" | "humedadAire" | "humedadSuelo";
@@ -24,20 +26,6 @@ const NIVELES = [
   { clave: "severa", etiqueta: "Severa", desde: UMBRAL.severa },
 ] as const;
 
-/** Rampas secuenciales de un solo tono (claro = valor bajo). */
-const RAMPAS: Record<Exclude<Capa, "sanidad">, [number, number, number][]> = {
-  temperatura: [[255, 237, 213], [253, 190, 133], [237, 120, 52], [181, 67, 11]],
-  humedadAire: [[205, 226, 251], [109, 167, 236], [37, 106, 191], [13, 54, 107]],
-  humedadSuelo: [[214, 240, 229], [120, 200, 170], [27, 140, 103], [9, 82, 60]],
-};
-
-function colorRampa(rampa: [number, number, number][], t: number): [number, number, number] {
-  const x = Math.max(0, Math.min(1, t)) * (rampa.length - 1);
-  const i = Math.min(rampa.length - 2, Math.floor(x));
-  const f = x - i;
-  return [0, 1, 2].map((c) => Math.round(rampa[i][c] + (rampa[i + 1][c] - rampa[i][c]) * f)) as [number, number, number];
-}
-
 function nivel(v: number) {
   if (v >= UMBRAL.severa) return "severa";
   if (v >= UMBRAL.moderada) return "moderada";
@@ -49,8 +37,8 @@ type Paleta = { suelo: string; cama: string; sana: string; leve: string; moderad
 function leerPaleta(): Paleta {
   const oscuro = document.documentElement.classList.contains("dark");
   return oscuro
-    ? { suelo: "#2a2622", cama: "#3b342c", sana: "#5f9a58", leve: "#fab219", moderada: "#ec835a", severa: "#e04848", texto: "#f2f0ea", tenue: "#a9a59b", robot: "#8fa0f0", borde: "#1a1a19" }
-    : { suelo: "#d9cdb8", cama: "#b89f7c", sana: "#4f7f47", leve: "#f2a900", moderada: "#e2733f", severa: "#c62f2f", texto: "#1f1d1a", tenue: "#6b665d", robot: "#2f45b8", borde: "#ffffff" };
+    ? { suelo: "#3a4232", cama: "#1f1d1b", sana: "#6fae5f", leve: "#fab219", moderada: "#ec835a", severa: "#e04848", texto: "#f2f0ea", tenue: "#b7b3a8", robot: "#9aa8ff", borde: "#141413" }
+    : { suelo: "#c7cfae", cama: "#4a4540", sana: "#3f8a3a", leve: "#f2a900", moderada: "#e2733f", severa: "#c62f2f", texto: "#1f1d1a", tenue: "#5e5a52", robot: "#2f45b8", borde: "#ffffff" };
 }
 
 const suscribirNada = () => () => {};
@@ -143,37 +131,59 @@ export function PlanoBloque({ plano, enfocar }: { plano: Plano; enfocar?: string
   const aPantalla = useCallback((v: Vista, xM: number, yM: number) => ({ x: v.tx + xM * v.k, y: v.ty + (plano.altoM - yM) * v.k }), [plano]);
   const aMundo = useCallback((v: Vista, x: number, y: number) => ({ xM: (x - v.tx) / v.k, yM: plano.altoM - (y - v.ty) / v.k }), [plano]);
 
-  const campoActivo: Campo | null = capa === "sanidad" ? null : plano.campos[capa];
+  const escala = ESCALAS[capa];
 
-  // Imagen del campo de calor (una celda por píxel; el navegador la suaviza al escalar)
-  const imagenCampo = useMemo(() => {
-    if (!campoActivo || typeof document === "undefined") return null;
-    const c = document.createElement("canvas");
-    c.width = campoActivo.cols;
-    c.height = campoActivo.filas;
-    const ctx = c.getContext("2d")!;
-    const img = ctx.createImageData(c.width, c.height);
-    const rango = Math.max(0.001, campoActivo.max - campoActivo.min);
-    for (let fy = 0; fy < campoActivo.filas; fy++) {
-      for (let fx = 0; fx < campoActivo.cols; fx++) {
-        const v = campoActivo.valores[fy * campoActivo.cols + fx];
-        const [r, g, b] = colorRampa(RAMPAS[capa as Exclude<Capa, "sanidad">], (v - campoActivo.min) / rango);
-        const p = ((campoActivo.filas - 1 - fy) * campoActivo.cols + fx) * 4; // norte arriba
-        img.data[p] = r;
-        img.data[p + 1] = g;
-        img.data[p + 2] = b;
-        img.data[p + 3] = 235;
+  // Con filtro de plaga, el campo de sanidad se recalcula solo con esa plaga
+  const campoActivo: CampoCalor & { unidad: string; fuente: string } = useMemo(() => {
+    const base = plano.campos[capa];
+    if (capa !== "sanidad" || !filtroPlaga) return base;
+    const objetivoPlaga = PLAGAS.indexOf(filtroPlaga as (typeof PLAGAS)[number]) + 1;
+    const { cols, filas } = base;
+    const suma = new Float64Array(cols * filas);
+    const cuenta = new Float64Array(cols * filas);
+    let k = 0;
+    for (const c of plano.camas) {
+      const fx = Math.min(cols - 1, Math.floor((c.xM / plano.anchoM) * cols));
+      for (let j = 0; j < c.plantas; j++, k++) {
+        const fy = Math.min(filas - 1, Math.floor(((plano.y0M + j * 0.75) / plano.altoM) * filas));
+        suma[fy * cols + fx] += plano.plaga[k] === objetivoPlaga ? plano.afectacion[k] : 0;
+        cuenta[fy * cols + fx]++;
       }
     }
-    ctx.putImageData(img, 0, 0);
-    return c;
-  }, [campoActivo, capa]);
+    let v = Array.from(suma, (x, i) => (cuenta[i] ? x / cuenta[i] : 0));
+    for (let pasada = 0; pasada < 2; pasada++) {
+      v = v.map((_, i) => {
+        const x = i % cols;
+        const y = Math.floor(i / cols);
+        let acc = 0;
+        let n = 0;
+        for (let dy = -1; dy <= 1; dy++)
+          for (let dx = -1; dx <= 1; dx++) {
+            const xx = x + dx;
+            const yy = y + dy;
+            if (xx < 0 || yy < 0 || xx >= cols || yy >= filas) continue;
+            const w = dx || dy ? 1 : 2;
+            acc += v[yy * cols + xx] * w;
+            n += w;
+          }
+        return acc / n;
+      });
+    }
+    return { ...base, valores: v };
+  }, [plano, capa, filtroPlaga]);
+
+  // Imagen suave del campo (interpolada, con curvas de nivel); se crea una vez por capa
+  const imagenCampo = useMemo(() => {
+    if (!enNavegador) return null;
+    const escalaPx = Math.max(6, Math.round(560 / campoActivo.cols));
+    return pintarCampo(campoActivo, escala, campoActivo.cols * escalaPx, campoActivo.filas * escalaPx, { curvas: true });
+  }, [campoActivo, escala, enNavegador]);
 
   const valorCampo = useCallback((xM: number, yM: number) => {
-    if (!campoActivo) return null;
-    const fx = Math.min(campoActivo.cols - 1, Math.max(0, Math.floor((xM / plano.anchoM) * campoActivo.cols)));
-    const fy = Math.min(campoActivo.filas - 1, Math.max(0, Math.floor((yM / plano.altoM) * campoActivo.filas)));
-    return campoActivo.valores[fy * campoActivo.cols + fx];
+    const c = campoActivo;
+    const fx = Math.min(c.cols - 1, Math.max(0, Math.floor((xM / plano.anchoM) * c.cols)));
+    const fy = Math.min(c.filas - 1, Math.max(0, Math.floor((yM / plano.altoM) * c.filas)));
+    return c.valores[fy * c.cols + fx];
   }, [campoActivo, plano]);
 
   // --- Dibujo ---
@@ -185,65 +195,113 @@ export function PlanoBloque({ plano, enfocar }: { plano: Plano; enfocar?: string
     cv.height = tam.h * dpr;
     const ctx = cv.getContext("2d")!;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const pal = leerPaleta();
+    if (!pal) return;
     ctx.clearRect(0, 0, tam.w, tam.h);
 
     const o = aPantalla(vista, 0, plano.altoM);
     const W = plano.anchoM * vista.k;
     const H = plano.altoM * vista.k;
 
-    // Pasillos y cabeceras (suelo)
+    // Calles entre camas (cubierta vegetal) y borde del bloque
     ctx.fillStyle = pal.suelo;
     ctx.fillRect(o.x, o.y, W, H);
-    if (imagenCampo) {
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
-      ctx.drawImage(imagenCampo, o.x, o.y, W, H);
-    }
 
-    // Camas
+    // Naves del invernadero: tono alterno muy suave para leer cada túnel
+    plano.naves.forEach((n) => {
+      if (n.numero % 2) return;
+      const a = aPantalla(vista, n.x0M, plano.altoM);
+      ctx.fillStyle = "rgba(0,0,0,0.06)";
+      ctx.fillRect(a.x, a.y, (n.x1M - n.x0M) * vista.k, H);
+    });
+
+    // Camas con cobertura plástica; a poca distancia se leen como hileras verdes de follaje
     const anchoCama = 1.2 * vista.k;
     const largo = (plano.camas[0]?.plantas ?? 1) * 0.75 * vista.k;
+    const lejos = vista.k < 5;
     for (const c of plano.camas) {
       const p = aPantalla(vista, c.xM, plano.y0M - 0.375 + c.plantas * 0.75);
-      ctx.fillStyle = imagenCampo ? "rgba(60,45,30,0.18)" : pal.cama;
-      ctx.fillRect(p.x - anchoCama / 2, p.y, anchoCama, largo);
+      ctx.fillStyle = lejos ? pal.sana : pal.cama;
+      const r = Math.min(anchoCama / 2, 6);
+      ctx.beginPath();
+      ctx.roundRect(p.x - anchoCama / 2, p.y, anchoCama, largo, r);
+      ctx.fill();
     }
 
-    // Plantas
-    const radio = Math.max(0.6, Math.min(0.32 * vista.k, 9));
+    // Plantas (solo cuando ya se distinguen)
+    const radio = Math.max(0.6, Math.min(0.34 * vista.k, 10));
     const visibleX = (x: number) => x > -20 && x < tam.w + 20;
     const visibleY = (y: number) => y > -20 && y < tam.h + 20;
-    plano.camas.forEach((c, ci) => {
-      const px = aPantalla(vista, c.xM, 0).x;
-      if (!visibleX(px)) return;
-      for (let j = 0; j < c.plantas; j++) {
-        const py = aPantalla(vista, 0, plano.y0M + j * 0.75).y;
-        if (!visibleY(py)) continue;
-        const idx = inicioCama[ci] + j;
-        const v = plano.afectacion[idx];
-        const pl = plano.plaga[idx];
-        let color: string;
-        if (capa === "sanidad") {
-          const nombre = pl ? PLAGAS[pl - 1] : null;
-          const filtrada = filtroPlaga && nombre !== filtroPlaga;
-          color = filtrada || v < UMBRAL.leve ? pal.sana : pal[nivel(v) as "leve" | "moderada" | "severa"];
-          ctx.globalAlpha = filtrada && v >= UMBRAL.leve ? 0.35 : 1;
-        } else {
-          color = "rgba(30,60,30,0.55)";
-          ctx.globalAlpha = 1;
-        }
-        ctx.fillStyle = color;
-        if (radio < 1.2) {
-          ctx.fillRect(px - radio, py - radio, radio * 2, radio * 2);
-        } else {
+    const colorPorPlanta = capa === "sanidad" && vista.k >= 12;
+    if (!lejos) {
+      plano.camas.forEach((c, ci) => {
+        const px = aPantalla(vista, c.xM, 0).x;
+        if (!visibleX(px)) return;
+        for (let j = 0; j < c.plantas; j++) {
+          const py = aPantalla(vista, 0, plano.y0M + j * 0.75).y;
+          if (!visibleY(py)) continue;
+          const idx = inicioCama[ci] + j;
+          const v = plano.afectacion[idx];
+          const nombre = plano.plaga[idx] ? PLAGAS[plano.plaga[idx] - 1] : null;
+          const afectada = v >= UMBRAL.leve && (!filtroPlaga || nombre === filtroPlaga);
+          ctx.fillStyle = colorPorPlanta && afectada ? pal[nivel(v) as "leve" | "moderada" | "severa"] : pal.sana;
           ctx.beginPath();
           ctx.arc(px, py, radio, 0, Math.PI * 2);
           ctx.fill();
+          if (radio > 4) {
+            // brillo del follaje
+            ctx.fillStyle = "rgba(255,255,255,0.16)";
+            ctx.beginPath();
+            ctx.arc(px - radio * 0.3, py - radio * 0.3, radio * 0.45, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
+      });
+    }
+
+    // Mapa de calor encima: suave y con curvas de nivel. Al acercarse en Sanidad se
+    // atenúa para que se vea el color de cada planta.
+    if (imagenCampo) {
+      ctx.save();
+      ctx.globalAlpha = capa === "sanidad" ? (colorPorPlanta ? 0.35 : 1) : lejos ? 0.92 : 0.7;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(imagenCampo, o.x, o.y, W, H);
+      ctx.restore();
+    }
+
+    // Estructura: canales entre naves y borde del invernadero
+    ctx.strokeStyle = "rgba(255,255,255,0.75)";
+    ctx.lineWidth = vista.k > 8 ? 2 : 1.2;
+    for (const n of plano.naves.slice(1)) {
+      const a = aPantalla(vista, n.x0M, plano.altoM);
+      ctx.beginPath();
+      ctx.moveTo(a.x, o.y);
+      ctx.lineTo(a.x, o.y + H);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = "rgba(255,255,255,0.95)";
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(o.x, o.y, W, H);
+
+    // Número de cada nave en la cabecera norte
+    const anchoNave = 9 * vista.k;
+    if (anchoNave > 16) {
+      ctx.font = `600 ${Math.min(12, anchoNave * 0.28)}px ui-sans-serif, system-ui, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      for (const n of plano.naves) {
+        const cx = aPantalla(vista, (n.x0M + n.x1M) / 2, 0).x;
+        const cy = Math.max(o.y + 10, 12);
+        const texto = anchoNave > 60 ? `Nave ${n.numero}` : `N${n.numero}`;
+        const w = ctx.measureText(texto).width + 10;
+        ctx.fillStyle = "rgba(255,255,255,0.92)";
+        ctx.beginPath();
+        ctx.roundRect(cx - w / 2, cy - 9, w, 18, 9);
+        ctx.fill();
+        ctx.fillStyle = "#1f1d1a";
+        ctx.fillText(texto, cx, cy + 0.5);
       }
-    });
-    ctx.globalAlpha = 1;
+    }
 
     // Selección
     const sel = fijo ?? hover ?? (!enfocado && objetivo ? { tipo: "planta" as const, cama: objetivo.cama, pos: objetivo.pos, idx: objetivo.idx } : null);
@@ -260,12 +318,12 @@ export function PlanoBloque({ plano, enfocar }: { plano: Plano; enfocar?: string
     // Números de cama (norte) y tags de planta al acercarse
     ctx.textBaseline = "middle";
     const pasoCama = 3 * vista.k;
-    if (pasoCama > 14) {
-      ctx.font = `600 ${Math.min(13, pasoCama * 0.45)}px ui-sans-serif, system-ui, sans-serif`;
+    if (pasoCama > 22) {
+      ctx.font = `600 ${Math.min(13, pasoCama * 0.4)}px ui-sans-serif, system-ui, sans-serif`;
       ctx.textAlign = "center";
       ctx.fillStyle = pal.texto;
       for (const c of plano.camas) {
-        const p = aPantalla(vista, c.xM, plano.altoM - 1.6);
+        const p = aPantalla(vista, c.xM, 1.8); // cabecera sur: el norte lo ocupan las naves
         if (visibleX(p.x)) ctx.fillText(`C${c.numero}`, p.x, p.y);
       }
     }
@@ -280,8 +338,12 @@ export function PlanoBloque({ plano, enfocar }: { plano: Plano; enfocar?: string
           const py = aPantalla(vista, 0, plano.y0M + j * 0.75).y;
           if (!visibleY(py)) continue;
           const v = plano.afectacion[inicioCama[ci] + j];
-          ctx.fillStyle = v >= UMBRAL.leve && capa === "sanidad" ? pal.texto : pal.tenue;
-          ctx.fillText(pasoCama > 90 ? `${plano.bloqueId}-C${String(c.numero).padStart(2, "0")}-P${String(j + 1).padStart(3, "0")}` : `P${String(j + 1).padStart(3, "0")}`, px, py);
+          const texto = pasoCama > 90 ? `${plano.bloqueId}-N${String(c.nave).padStart(2, "0")}-C${String(c.numero).padStart(2, "0")}-P${String(j + 1).padStart(3, "0")}` : `P${String(j + 1).padStart(3, "0")}`;
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = "rgba(255,255,255,0.9)";
+          ctx.strokeText(texto, px, py);
+          ctx.fillStyle = v >= UMBRAL.leve && capa === "sanidad" ? "#7a1010" : "#1f1d1a";
+          ctx.fillText(texto, px, py);
         }
       });
     }
@@ -323,7 +385,7 @@ export function PlanoBloque({ plano, enfocar }: { plano: Plano; enfocar?: string
     ctx.fillRect(14, tam.h - 16, largoEscala, 3);
     ctx.textAlign = "left";
     ctx.fillText(`${metros} m`, 14, tam.h - 26);
-  }, [vista, tam, plano, capa, filtroPlaga, verRobot, verSensores, imagenCampo, hover, fijo, inicioCama, aPantalla, enfocado, objetivo]);
+  }, [vista, tam, plano, capa, filtroPlaga, verRobot, verSensores, imagenCampo, hover, fijo, inicioCama, aPantalla, enfocado, objetivo, pal]);
 
   // --- Interacción ---
   const buscar = useCallback((x: number, y: number): Seleccion => {
@@ -425,7 +487,7 @@ export function PlanoBloque({ plano, enfocar }: { plano: Plano; enfocar?: string
         <canvas
           ref={lienzo}
           style={{ width: tam.w, height: tam.h, touchAction: "none", cursor: arrastrando ? "grabbing" : "crosshair" }}
-          aria-label={`Plano del bloque ${plano.bloqueId}: ${plano.camas.length} camas y ${plano.resumen.plantas} plantas`}
+          aria-label={`Plano del bloque ${plano.bloqueId}: ${plano.naves.length} naves, ${plano.camas.length} camas y ${plano.resumen.plantas} plantas`}
           role="img"
           onPointerDown={(e) => {
             if (!vista) return;
@@ -476,8 +538,8 @@ export function PlanoBloque({ plano, enfocar }: { plano: Plano; enfocar?: string
           >
             {infoPlanta ? (
               <>
-                <div className="font-mono font-medium">{plano.bloqueId}-C{String(infoPlanta.cama).padStart(2, "0")}-P{String(infoPlanta.pos).padStart(3, "0")}</div>
-                <div className="text-muted-foreground">Cama {infoPlanta.cama} · planta {infoPlanta.pos} de sur a norte</div>
+                <div className="font-mono font-medium">{plano.bloqueId}-N{String(plano.camas[infoPlanta.cama - 1].nave).padStart(2, "0")}-C{String(infoPlanta.cama).padStart(2, "0")}-P{String(infoPlanta.pos).padStart(3, "0")}</div>
+                <div className="text-muted-foreground">Bloque {plano.bloqueId} · nave {plano.camas[infoPlanta.cama - 1].nave} · cama {infoPlanta.cama} · planta {infoPlanta.pos}</div>
                 {(() => {
                   const i = capturaDe.get(`${infoPlanta.cama}:${infoPlanta.pos}`);
                   const r = i !== undefined ? plano.robot[i] : null;
@@ -499,7 +561,7 @@ export function PlanoBloque({ plano, enfocar }: { plano: Plano; enfocar?: string
                     <div className="mt-1"><span className="text-muted-foreground">Sanidad simulada: </span>sana</div>
                   )
                 ) : (
-                  <div className="mt-1">{CAPAS.find((c) => c.valor === capa)?.etiqueta}: <span className="font-medium">{valorCampo(plano.camas[infoPlanta.cama - 1].xM, plano.y0M + (infoPlanta.pos - 1) * 0.75)} {campoActivo?.unidad}</span></div>
+                  <div className="mt-1">{escala.titulo}: <span className="font-medium">{valorCampo(plano.camas[infoPlanta.cama - 1].xM, plano.y0M + (infoPlanta.pos - 1) * 0.75)?.toFixed(escala.decimales)} {escala.unidad}</span></div>
                 )}
               </>
             ) : infoRobot ? (
@@ -522,26 +584,18 @@ export function PlanoBloque({ plano, enfocar }: { plano: Plano; enfocar?: string
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
-        {capa === "sanidad" && pal ? (
-          <div className="flex flex-wrap items-center gap-3">
-            {NIVELES.map((n) => (
-              <span key={n.clave} className="inline-flex items-center gap-1.5">
-                <span className="inline-block size-2.5 rounded-full" style={{ background: pal[n.clave as keyof Paleta] }} />
-                {n.etiqueta} <span className="tabular-nums text-foreground">{conteos[n.clave as keyof typeof conteos].toLocaleString("es-CO")}</span>
-              </span>
-            ))}
-          </div>
-        ) : campoActivo ? (
-          <div className="flex items-center gap-2">
-            <span className="tabular-nums">{campoActivo.min}{campoActivo.unidad}</span>
-            <span
-              className="inline-block h-2.5 w-36 rounded-full"
-              style={{ background: `linear-gradient(90deg, ${RAMPAS[capa as Exclude<Capa, "sanidad">].map((c) => `rgb(${c.join(",")})`).join(",")})` }}
-            />
-            <span className="tabular-nums">{campoActivo.max}{campoActivo.unidad}</span>
-            <span>· {campoActivo.fuente}</span>
-          </div>
-        ) : null}
+        <LeyendaCalor escala={escala} subtitulo={capa === "sanidad" && filtroPlaga ? NOMBRE_PLAGA[filtroPlaga] : undefined} fuente={campoActivo.fuente}>
+          {capa === "sanidad" && pal ? (
+            <div className="mt-1 flex flex-wrap items-center gap-3">
+              {NIVELES.map((n) => (
+                <span key={n.clave} className="inline-flex items-center gap-1.5">
+                  <span className="inline-block size-2.5 rounded-full" style={{ background: pal[n.clave as keyof Paleta] }} />
+                  {n.etiqueta} <span className="tabular-nums text-foreground">{conteos[n.clave as keyof typeof conteos].toLocaleString("es-CO")}</span>
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </LeyendaCalor>
         <span>{esTactil ? "Usa + y − para acercar, arrastra para moverte y toca una planta para ver su tag." : "Rueda o doble clic para acercar · arrastra para moverte · clic para fijar una planta"}</span>
       </div>
       {sel?.tipo === "planta" && capturaDe.has(`${sel.cama}:${sel.pos}`) && plano.robot[capturaDe.get(`${sel.cama}:${sel.pos}`)!].observationId ? (

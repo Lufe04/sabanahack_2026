@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EtiquetaCaptura } from "@/components/dashboard/etiqueta-captura";
 import { notFound } from "next/navigation";
 import { Siren } from "lucide-react";
 import { Encabezado, Seccion } from "@/components/dashboard/encabezado";
@@ -11,7 +12,6 @@ import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-const MODO: Record<string, string> = { periodic: "Lectura periódica", automatic: "Alerta automática", manual: "Foto manual", route_reference: "Referencia de punto del plan" };
 
 export default async function DetalleCaptura({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -22,13 +22,14 @@ export default async function DetalleCaptura({ params }: { params: Promise<{ id:
     ["Capturada", fmtFecha(c.capturadoEn, "d 'de' MMMM yyyy, HH:mm:ss")],
     ["Recibida", fmtFecha(c.recibidoEn, "d MMM, HH:mm:ss")],
     ["Bloque", c.loteId ? <Link href={`/bloques/${c.loteId}`} className="underline">{c.loteId}</Link> : "Sin bloque (captura antigua)"],
+    ["Nave", c.nave ?? "—"],
     ["Cama", c.cama ?? "—"],
     ["Planta", c.tag ? <Link href={`/bloques/${c.loteId}?planta=${c.tag}`} className="font-mono underline">{c.tag}</Link> : "—"],
     ["Misión", c.mision ?? "—"],
     ["Revisión", c.inspectionId ? <Link href={`/recorridos/${c.inspectionId}`} className="underline">{c.recorridoNombre ?? c.inspectionId}</Link> : "—"],
     ["Punto del plan", c.waypointId ?? "—"],
     ["Modelo", c.modelo ?? "—"],
-    ["Tipo", MODO[c.modoCaptura ?? ""] ?? (c.antigua ? "Captura de una versión anterior de la app" : c.modoCaptura ?? "—")],
+    ["Tipo", <EtiquetaCaptura key="tipo" alerta={c.alerta} modo={c.modoCaptura} />],
     ["Ubicación GPS", c.lat !== null && c.lng !== null ? `${c.lat.toFixed(6)}, ${c.lng.toFixed(6)}${c.precisionM ? ` · ±${fmtNum(c.precisionM, 0)} m` : ""}` : c.simulado ? "No aplica: posición simulada en la demo" : "Sin GPS"],
     ["UUID", <code key="id" className="text-xs">{c.id}</code>],
   ];
@@ -89,7 +90,7 @@ export default async function DetalleCaptura({ params }: { params: Promise<{ id:
             </dl>
             {c.origenBloque === "mvp" || c.origenCama === "mvp" ? (
               <p className="mt-3 text-xs text-muted-foreground">
-                La app todavía no envía {c.origenBloque === "mvp" ? "el bloque ni la cama" : "la cama"}: en este MVP se asignan de forma fija en el código
+                La app todavía no envía {c.origenBloque === "mvp" ? "el bloque, la nave ni la cama" : "la nave ni la cama"}: en este MVP se asignan de forma fija en el código
                 {c.plantaApp ? `, a partir del identificador de planta que sí envía (${c.plantaApp.slice(0, 8)}…)` : ""}. La misma planta cae siempre en el mismo tag.
               </p>
             ) : null}

@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/lotes", destination: "/bloques", permanent: false },
       { source: "/lotes/:id", destination: "/bloques/:id", permanent: false },
+      { source: "/bloques/L:n(\\d{2})", destination: "/bloques/B:n", permanent: false },
     ];
   },
   turbopack: {

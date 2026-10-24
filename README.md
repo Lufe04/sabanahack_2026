@@ -91,7 +91,7 @@ Autenticación con `Authorization: Bearer <INGEST_API_KEY>`.
 # Lecturas de sensores (hasta 5000 por llamada)
 curl -X POST https://<host>/api/ingesta/lecturas \
   -H "Authorization: Bearer $INGEST_API_KEY" -H "content-type: application/json" \
-  -d '{"lecturas":[{"sensorId":"L01-HS-1","ts":"2026-10-23T12:00:00Z","valor":41.2}]}'
+  -d '{"lecturas":[{"sensorId":"B01-HS-1","ts":"2026-10-23T12:00:00Z","valor":41.2}]}'
 ```
 
 `GET /api/lotes` devuelve el estado actual de cada lote.
@@ -133,12 +133,12 @@ Notas:
 
 `/bloques/[id]` dibuja el bloque con sus camas, pasillos y plantas (`src/lib/bloque/plano.ts`, `src/components/bloque/plano-bloque.tsx`):
 
-- Marco de plantación: camas de 1,2 m, pasillos de 1,8 m (3 m entre centros) y plantas cada 0,75 m. Cada planta tiene un tag `BLOQUE-Ccama-Pposición`, por ejemplo `L08-C12-P049`, contando de sur a norte.
+- Marco de plantación: camas de 1,2 m, pasillos de 1,8 m (3 m entre centros) y plantas cada 0,75 m. El bloque es el invernadero, dividido en naves de 9 m con 3 camas cada una. Cada planta tiene un tag `BLOQUE-Nnave-Ccama-Pposición`, por ejemplo `B08-N04-C12-P049`, contando de sur a norte.
 - Capa **Sanidad**: afectación por planta (sana, leve, moderada, severa) a partir de los focos de los brotes abiertos del bloque. Los hongos se concentran en la parte baja cuando el drenaje es malo; los trips entran por los bordes y avanzan a lo largo de la cama.
 - Capas **Temperatura**, **Humedad del aire** y **Humedad del suelo**: interpoladas desde la posición de los sensores del bloque, con un microclima simulado.
 - Encima se ven los puntos reales del robot y la posición de los sensores. Zoom con rueda, doble clic o botones; los tags aparecen al acercarse.
 
-En la base y en la API el bloque conserva el nombre técnico `lote` (`lote_id`, `/api/lotes`, códigos L01 a L10), porque la app del robot ya usa esos identificadores. La interfaz los llama bloques; `/lotes` redirige a `/bloques`.
+En la base y en la API el bloque conserva el nombre técnico `lote` (`lote_id`, `/api/lotes`), con códigos B01 a B10; los códigos viejos L01 a L10 se traducen, porque la app del robot ya usa esos identificadores. La interfaz los llama bloques; `/lotes` redirige a `/bloques`.
 
 ## Recomendaciones del día
 

@@ -62,8 +62,12 @@ export async function getPlanoBloque(loteId: string): Promise<{ plano: Plano; lo
   return { plano: construirPlano({ ...entrada(lote, brotes, sensores), robot, capturas }), lote };
 }
 
+/** Campo compacto (valores redondeados) para pintar el calor del bloque en el mapa de la finca. */
+export type CampoCompacto = { cols: number; filas: number; valores: number[] };
+
 export type SanidadBloque = PlanoResumen & {
   loteId: string;
+  campos: Record<"sanidad" | "temperatura" | "humedadAire" | "humedadSuelo", CampoCompacto>;
   temperatura: number | null;
   humedadAire: number | null;
   humedadSuelo: number | null;
@@ -75,12 +79,14 @@ export async function getSanidadFinca(lotes?: LoteEstado[]): Promise<SanidadBloq
   const [todos, brotes, sensores] = await Promise.all([lotes ? Promise.resolve(lotes) : getLotesEstado(), brotesParaPlano(), ultimasLecturas()]);
   return todos.map((l) => {
     const s = sensores.filter((x) => x.loteId === l.id);
-    const { resumen } = construirPlano(entrada(l, brotes.filter((b) => b.loteId === l.id), s));
+    const { resumen, campos } = construirPlano(entrada(l, brotes.filter((b) => b.loteId === l.id), s));
+    const compacto = (c: { cols: number; filas: number; valores: number[] }, d = 0): CampoCompacto => ({ cols: c.cols, filas: c.filas, valores: c.valores.map((v) => Number(v.toFixed(d))) });
     const principal = (Object.entries(resumen.porPlaga) as [Enfermedad, number][]).sort((a, b) => b[1] - a[1])[0];
     const sondas = s.filter((x) => x.tipo === "humedad_suelo" && x.valor !== null);
     return {
       ...resumen,
       loteId: l.id,
+      campos: { sanidad: compacto(campos.sanidad), temperatura: compacto(campos.temperatura, 1), humedadAire: compacto(campos.humedadAire), humedadSuelo: compacto(campos.humedadSuelo) },
       temperatura: s.find((x) => x.tipo === "temperatura")?.valor ?? l.tempProm,
       humedadAire: s.find((x) => x.tipo === "humedad_aire")?.valor ?? l.humedadAireProm,
       humedadSuelo: sondas.length ? sondas.reduce((a, x) => a + (x.valor ?? 0), 0) / sondas.length : l.humedadSueloProm,
