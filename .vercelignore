@@ -1,0 +1,9 @@
+# Nunca subir secretos ni artefactos locales (despliegues desde la raíz del repositorio)
+**/.env*
+!**/.env.example
+**/node_modules
+**/.next
+**/.agents
+**/.claude
+**/*.png
+dashboard/drizzle

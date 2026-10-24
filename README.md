@@ -53,6 +53,10 @@ cd integracion_dashboard && npm install && npm test
 - **Simulado:** la finca de 10 bloques, sus sensores, brotes, cosechas y la sanidad por planta del plano. Sirve para mostrar el dashboard completo mientras se acumulan datos reales.
 - **Asignado en el MVP:** la app todavía no envía bloque, nave ni cama; el dashboard los asigna con una regla fija a partir del identificador de planta (`dashboard/src/lib/cultivos/asignacion-mvp.ts`).
 
+## Despliegue
+
+El proyecto `arandanos-dashboard` de Vercel está conectado a este repositorio con **Root Directory = `dashboard`**. Cada `git push` a `main` construye y publica el dashboard automáticamente; no hace falta desplegar a mano. Para un despliegue manual, correr `vercel deploy --prod` desde la **raíz** del repositorio (no desde `dashboard/`).
+
 ## Secretos
 
 Ningún token ni contraseña está en el repositorio. Los archivos `.env*.local` están ignorados; los tokens de producción viven en Vercel. Cada carpeta trae un `.env.example` con las variables que necesita.
